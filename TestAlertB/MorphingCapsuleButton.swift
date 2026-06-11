@@ -75,9 +75,35 @@ struct MorphingCapsuleButton: View {
         // 形变主体可以超出格子宽度绘制，但不参与 HStack 布局计算，
         // 因此展开时不会挤压相邻的兄弟按钮。
         GeometryReader { geo in
-            morphingBody(slotWidth: geo.size.width)
+            let slotWidth = geo.size.width
+
+            morphingBody(slotWidth: slotWidth)
                 // 按 position 锚定：内容超宽时从锚点方向溢出
-                .frame(width: geo.size.width, height: buttonHeight, alignment: item.position.anchor)
+                .frame(width: slotWidth, height: buttonHeight, alignment: item.position.anchor)
+                .onAppear {
+                    logLayout(
+                        slotWidth: slotWidth,
+                        reason: "appear",
+                        expandedValue: isExpanded,
+                        selectedValue: selectedOption
+                    )
+                }
+                .onChange(of: isExpanded) { newValue in
+                    logLayout(
+                        slotWidth: slotWidth,
+                        reason: "isExpandedChanged=\(newValue)",
+                        expandedValue: newValue,
+                        selectedValue: selectedOption
+                    )
+                }
+                .onChange(of: selectedOption) { newValue in
+                    logLayout(
+                        slotWidth: slotWidth,
+                        reason: "selectedOptionChanged=\(newValue ?? "nil")",
+                        expandedValue: isExpanded,
+                        selectedValue: newValue
+                    )
+                }
         }
         .frame(height: buttonHeight)
         // 展开瞬间提升 Z 层级，保证覆盖在相邻按钮之上
@@ -102,6 +128,9 @@ struct MorphingCapsuleButton: View {
         .frame(width: isExpanded ? rowWidth(slotWidth: slotWidth) : slotWidth, height: buttonHeight)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .onTapGesture {
+            TestLog.log(
+                "tap id=\(item.id), title=\(item.title), isExpandedBefore=\(isExpanded), selected=\(selectedOption ?? "nil")"
+            )
             if !isExpanded { onTap() }
         }
     }
@@ -141,5 +170,34 @@ struct MorphingCapsuleButton: View {
             }
         }
         .padding(.horizontal, 6)
+    }
+
+    private func logLayout(
+        slotWidth: CGFloat,
+        reason: String,
+        expandedValue: Bool,
+        selectedValue: String?
+    ) {
+        let visibleWidth = expandedValue ? rowWidth(slotWidth: slotWidth) : slotWidth
+
+        TestLog.log(
+            "layout reason=\(reason), id=\(item.id), title=\(item.title), position=\(debugPositionDescription(item.position)), rowItemCount=\(rowItemCount), loggedExpanded=\(expandedValue), selected=\(selectedValue ?? "nil"), slotWidth=\(debugNumber(slotWidth)), visibleWidth=\(debugNumber(visibleWidth)), viewZIndex=\(expandedValue ? 10 : 0)"
+        )
+    }
+
+    private func debugPositionDescription(_ position: ButtonPosition) -> String {
+        switch position {
+        case .left:
+            return "left"
+        case .center:
+            return "center"
+        case .right:
+            return "right"
+        }
+    }
+
+    private func debugNumber(_ value: CGFloat) -> String {
+        let rounded = (Double(value) * 10).rounded() / 10
+        return "\(rounded)"
     }
 }

@@ -106,9 +106,13 @@ struct CameraSettingsSheet: View {
 
     private var settingsGrid: some View {
         VStack(spacing: 12) {
-            ForEach(Array(Self.rows.enumerated()), id: \.offset) { _, row in
+            ForEach(Array(Self.rows.enumerated()), id: \.offset) { rowIndex, row in
+                let expandedIDInRow = row.first { $0.id == expandedItemID }?.id
+
                 HStack(spacing: 12) {
                     ForEach(row) { item in
+                        let isCoveredByExpandedSibling = expandedIDInRow != nil && expandedIDInRow != item.id
+
                         MorphingCapsuleButton(
                             item: item,
                             rowItemCount: row.count,
@@ -118,7 +122,21 @@ struct CameraSettingsSheet: View {
                             onTap: { handleTap(item) },
                             onSelect: { option in select(option, for: item) }
                         )
+                        .zIndex(expandedItemID == item.id ? 10 : 0)
+                        .opacity(isCoveredByExpandedSibling ? 0 : 1)
+                        .allowsHitTesting(!isCoveredByExpandedSibling)
+                        .accessibilityHidden(isCoveredByExpandedSibling)
+                        .onChange(of: isCoveredByExpandedSibling) { isCovered in
+                            TestLog.log(
+                                "row sibling coverage item=\(item.id), rowIndex=\(rowIndex), expandedIDInRow=\(expandedIDInRow ?? "nil"), isCovered=\(isCovered)"
+                            )
+                        }
                     }
+                }
+                .onAppear {
+                    TestLog.log(
+                        "row appear index=\(rowIndex), paintOrder=\(debugRowDescription(row))"
+                    )
                 }
             }
         }
@@ -149,6 +167,10 @@ struct CameraSettingsSheet: View {
     // MARK: - 状态流转
 
     private func handleTap(_ item: SettingItem) {
+        TestLog.log(
+            "handleTap id=\(item.id), title=\(item.title), kind=\(debugKindDescription(item.kind)), position=\(debugPositionDescription(item.position)), expandedBefore=\(expandedItemID ?? "nil"), rowOrder=\(debugRowDescription(containing: item)), selected=\(optionSelections[item.id] ?? "nil"), toggles=\(debugToggleDescription())"
+        )
+
         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
             switch item.kind {
             case .options:
@@ -162,31 +184,85 @@ struct CameraSettingsSheet: View {
                 }
             }
         }
+
+        TestLog.log(
+            "handleTap scheduled id=\(item.id), expandedAfter=\(expandedItemID ?? "nil"), toggles=\(debugToggleDescription())"
+        )
     }
 
     private func select(_ option: String, for item: SettingItem) {
+        TestLog.log(
+            "select option=\(option), id=\(item.id), previous=\(optionSelections[item.id] ?? "nil"), expandedBefore=\(expandedItemID ?? "nil")"
+        )
+
         optionSelections[item.id] = option
         // 选择后延迟 0.2 秒，胶囊原路收缩回普通按钮
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                 expandedItemID = nil
             }
+            TestLog.log(
+                "select collapse id=\(item.id), option=\(option), expandedAfter=\(expandedItemID ?? "nil")"
+            )
         }
     }
 
     private func collapseExpanded() {
         guard expandedItemID != nil else { return }
+        TestLog.log("collapseExpanded expandedBefore=\(expandedItemID ?? "nil")")
+
         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
             expandedItemID = nil
         }
     }
 
     private func dismiss() {
+        TestLog.log("dismiss expandedBefore=\(expandedItemID ?? "nil"), dragOffset=\(dragOffset)")
+
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
             expandedItemID = nil
             isPresented = false
             dragOffset = 0
         }
+    }
+
+    private func debugKindDescription(_ kind: SettingItemKind) -> String {
+        switch kind {
+        case .toggle:
+            return "toggle"
+        case .options(let options):
+            return "options(\(options.joined(separator: "/")))"
+        }
+    }
+
+    private func debugPositionDescription(_ position: ButtonPosition) -> String {
+        switch position {
+        case .left:
+            return "left"
+        case .center:
+            return "center"
+        case .right:
+            return "right"
+        }
+    }
+
+    private func debugRowDescription(containing item: SettingItem) -> String {
+        guard let row = Self.rows.first(where: { row in
+            row.contains { $0.id == item.id }
+        }) else {
+            return "unknown"
+        }
+
+        return debugRowDescription(row)
+    }
+
+    private func debugRowDescription(_ row: [SettingItem]) -> String {
+        return row.map(\.id).joined(separator: " -> ")
+    }
+
+    private func debugToggleDescription() -> String {
+        guard !enabledToggles.isEmpty else { return "[]" }
+        return "[\(enabledToggles.sorted().joined(separator: ","))]"
     }
 }
 
