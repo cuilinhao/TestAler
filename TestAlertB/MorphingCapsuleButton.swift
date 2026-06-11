@@ -112,9 +112,7 @@ struct MorphingCapsuleButton: View {
 
     private func morphingBody(slotWidth: CGFloat) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(.regularMaterial)
-                .environment(\.colorScheme, .dark)
+            buttonBackground
 
             collapsedLabel
                 .opacity(isExpanded ? 0 : 1)
@@ -132,6 +130,22 @@ struct MorphingCapsuleButton: View {
                 "tap id=\(item.id), title=\(item.title), isExpandedBefore=\(isExpanded), selected=\(selectedOption ?? "nil")"
             )
             if !isExpanded { onTap() }
+        }
+    }
+
+    @ViewBuilder
+    private var buttonBackground: some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        switch item.id {
+        case "ratio":
+            shape.fill(Color.green)
+        case "timer":
+            shape.fill(Color.red)
+        default:
+            shape
+                .fill(.regularMaterial)
+                .environment(\.colorScheme, .dark)
         }
     }
 
