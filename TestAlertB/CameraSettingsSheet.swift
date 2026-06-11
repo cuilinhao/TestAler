@@ -19,9 +19,15 @@ struct CameraSettingsSheet: View {
     @State private var contentHeight: CGFloat = 0
     // 下滑手势的实时位移
     @State private var dragOffset: CGFloat = 0
+    // 呈现生命周期拆分：isPresented 表示外部意图，isRendered 表示视图是否仍保留在树中
+    @State private var isRendered = false
+    @State private var sheetOffset: CGFloat = 0
+    @State private var backdropOpacity: Double = 0
 
     /// 顶部拖拽指示条区域的固定高度（参与 Sheet 总高度计算）
     private let grabberZoneHeight: CGFloat = 32
+    private let visibleBackdropOpacity = 0.35
+    private let presentationAnimation = Animation.spring(response: 0.4, dampingFraction: 0.85)
 
     /// 多行不等列布局：2 / 3 / 3 / 2，每行内部平分宽度
     private static let rows: [[SettingItem]] = [
@@ -53,26 +59,72 @@ struct CameraSettingsSheet: View {
             let needsScroll = contentHeight + grabberZoneHeight > maxSheetHeight
 
             ZStack(alignment: .bottom) {
-                if isPresented {
+                if isRendered {
                     // 暗色遮罩：点击面板外部区域自动收回
-                    Color.black.opacity(0.35)
+                    Color.black.opacity(backdropOpacity)
                         .ignoresSafeArea()
-                        .onTapGesture { dismiss() }
-                        .transition(.opacity)
+                        .onTapGesture {
+                            TestLog.log(
+                                "backdrop tap -> dismiss, isPresented=\(isPresented), expanded=\(expandedItemID ?? "nil"), dragOffset=\(debugNumber(dragOffset))"
+                            )
+                            dismiss(screenHeight: screen.size.height)
+                        }
+                        .onAppear {
+                            TestLog.log("backdrop appear")
+                        }
+                        .onDisappear {
+                            TestLog.log("backdrop disappear")
+                        }
 
-                    sheetPanel(maxHeight: maxSheetHeight, needsScroll: needsScroll)
-                        .transition(.move(edge: .bottom))
+                    sheetPanel(
+                        maxHeight: maxSheetHeight,
+                        needsScroll: needsScroll,
+                        screenHeight: screen.size.height
+                    )
+                        .onAppear {
+                            TestLog.log(
+                                "sheet transition appear, screen=\(debugSize(screen.size)), safeAreaBottom=\(debugNumber(screen.safeAreaInsets.bottom)), maxSheetHeight=\(debugNumber(maxSheetHeight)), contentHeight=\(debugNumber(contentHeight)), grabberZoneHeight=\(debugNumber(grabberZoneHeight)), needsScroll=\(needsScroll)"
+                            )
+                        }
+                        .onDisappear {
+                            TestLog.log(
+                                "sheet transition disappear, screen=\(debugSize(screen.size)), safeAreaBottom=\(debugNumber(screen.safeAreaInsets.bottom)), maxSheetHeight=\(debugNumber(maxSheetHeight)), contentHeight=\(debugNumber(contentHeight)), dragOffset=\(debugNumber(dragOffset)), isPresented=\(isPresented)"
+                            )
+                        }
+                        .offset(y: max(sheetOffset, 0))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .onAppear {
+                TestLog.log(
+                    "container appear, screen=\(debugSize(screen.size)), safeAreaBottom=\(debugNumber(screen.safeAreaInsets.bottom)), maxSheetHeight=\(debugNumber(maxSheetHeight)), contentHeight=\(debugNumber(contentHeight)), needsScroll=\(needsScroll), isPresented=\(isPresented)"
+                )
+                if isPresented {
+                    present(screenHeight: screen.size.height)
+                }
+            }
+            .onChange(of: isPresented) { newValue in
+                TestLog.log(
+                    "isPresented changed=\(newValue), screen=\(debugSize(screen.size)), safeAreaBottom=\(debugNumber(screen.safeAreaInsets.bottom)), maxSheetHeight=\(debugNumber(maxSheetHeight)), contentHeight=\(debugNumber(contentHeight)), needsScroll=\(needsScroll), dragOffset=\(debugNumber(dragOffset))"
+                )
+                if newValue {
+                    present(screenHeight: screen.size.height)
+                } else {
+                    runDismissAnimation(screenHeight: screen.size.height)
+                }
+            }
+            .onChange(of: contentHeight) { newValue in
+                TestLog.log(
+                    "contentHeight changed=\(debugNumber(newValue)), screen=\(debugSize(screen.size)), maxSheetHeight=\(debugNumber(maxSheetHeight)), needsScroll=\(needsScroll)"
+                )
+            }
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isPresented)
         .animation(.spring(response: 0.35, dampingFraction: 0.75), value: expandedItemID)
     }
 
     // MARK: - 面板主体
 
-    private func sheetPanel(maxHeight: CGFloat, needsScroll: Bool) -> some View {
+    private func sheetPanel(maxHeight: CGFloat, needsScroll: Bool, screenHeight: CGFloat) -> some View {
         VStack(spacing: 0) {
             // 顶部拖拽指示条 (Grabber)
             Capsule()
@@ -99,9 +151,22 @@ struct CameraSettingsSheet: View {
         // 展开状态下点击面板空白处：立即收回展开的胶囊
         // （按钮自身的点击优先于此手势，互不冲突）
         .contentShape(Rectangle())
-        .onTapGesture { collapseExpanded() }
+        .onTapGesture {
+            TestLog.log("sheetPanel tap, expanded=\(expandedItemID ?? "nil")")
+            collapseExpanded()
+        }
         .offset(y: max(dragOffset, 0))
-        .gesture(dragToDismiss)
+        .gesture(dragToDismiss(screenHeight: screenHeight))
+        .onAppear {
+            TestLog.log(
+                "sheetPanel appear, maxHeight=\(debugNumber(maxHeight)), needsScroll=\(needsScroll), contentHeight=\(debugNumber(contentHeight)), grabberZoneHeight=\(debugNumber(grabberZoneHeight)), dragOffset=\(debugNumber(dragOffset)), backgroundIgnoresBottomSafeArea=true"
+            )
+        }
+        .onDisappear {
+            TestLog.log(
+                "sheetPanel disappear, maxHeight=\(debugNumber(maxHeight)), needsScroll=\(needsScroll), contentHeight=\(debugNumber(contentHeight)), dragOffset=\(debugNumber(dragOffset)), isPresented=\(isPresented)"
+            )
+        }
     }
 
     private var settingsGrid: some View {
@@ -148,14 +213,18 @@ struct CameraSettingsSheet: View {
 
     // MARK: - 手势
 
-    private var dragToDismiss: some Gesture {
+    private func dragToDismiss(screenHeight: CGFloat) -> some Gesture {
         DragGesture()
             .onChanged { value in
                 dragOffset = value.translation.height
             }
             .onEnded { value in
+                TestLog.log(
+                    "drag ended, translationHeight=\(debugNumber(value.translation.height)), threshold=100, willDismiss=\(value.translation.height > 100)"
+                )
+
                 if value.translation.height > 100 {
-                    dismiss()
+                    dismiss(screenHeight: screenHeight)
                 } else {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         dragOffset = 0
@@ -216,13 +285,75 @@ struct CameraSettingsSheet: View {
         }
     }
 
-    private func dismiss() {
+    private func dismiss(screenHeight: CGFloat) {
         TestLog.log("dismiss expandedBefore=\(expandedItemID ?? "nil"), dragOffset=\(dragOffset)")
 
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-            expandedItemID = nil
+        if isPresented {
             isPresented = false
+        } else {
+            runDismissAnimation(screenHeight: screenHeight)
+        }
+
+        TestLog.log(
+            "dismiss state set, expandedAfter=\(expandedItemID ?? "nil"), isPresented=\(isPresented), dragOffset=\(debugNumber(dragOffset))"
+        )
+    }
+
+    private func present(screenHeight: CGFloat) {
+        TestLog.log(
+            "present start, screenHeight=\(debugNumber(screenHeight)), isRendered=\(isRendered), sheetOffset=\(debugNumber(sheetOffset)), backdropOpacity=\(backdropOpacity)"
+        )
+
+        if !isRendered {
+            isRendered = true
+            sheetOffset = screenHeight
+            backdropOpacity = 0
+        }
+
+        DispatchQueue.main.async {
+            withAnimation(presentationAnimation) {
+                sheetOffset = 0
+                backdropOpacity = visibleBackdropOpacity
+                dragOffset = 0
+            }
+
+            TestLog.log(
+                "present animated, sheetOffset=\(debugNumber(sheetOffset)), backdropOpacity=\(backdropOpacity), isRendered=\(isRendered)"
+            )
+        }
+    }
+
+    private func runDismissAnimation(screenHeight: CGFloat) {
+        guard isRendered else {
+            TestLog.log("dismiss animation skipped, isRendered=false")
+            return
+        }
+
+        TestLog.log(
+            "dismiss animation start, screenHeight=\(debugNumber(screenHeight)), sheetOffset=\(debugNumber(sheetOffset)), dragOffset=\(debugNumber(dragOffset)), backdropOpacity=\(backdropOpacity)"
+        )
+
+        withAnimation(presentationAnimation) {
+            expandedItemID = nil
+            sheetOffset = screenHeight
+            backdropOpacity = 0
             dragOffset = 0
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+            guard !isPresented else {
+                TestLog.log("dismiss animation cleanup skipped, isPresented=true")
+                return
+            }
+
+            isRendered = false
+            sheetOffset = 0
+            backdropOpacity = 0
+            dragOffset = 0
+
+            TestLog.log(
+                "dismiss animation cleanup, isRendered=\(isRendered), sheetOffset=\(debugNumber(sheetOffset)), backdropOpacity=\(backdropOpacity), dragOffset=\(debugNumber(dragOffset))"
+            )
         }
     }
 
@@ -264,6 +395,15 @@ struct CameraSettingsSheet: View {
         guard !enabledToggles.isEmpty else { return "[]" }
         return "[\(enabledToggles.sorted().joined(separator: ","))]"
     }
+
+    private func debugSize(_ size: CGSize) -> String {
+        "\(debugNumber(size.width))x\(debugNumber(size.height))"
+    }
+
+    private func debugNumber(_ value: CGFloat) -> String {
+        let rounded = (Double(value) * 10).rounded() / 10
+        return "\(rounded)"
+    }
 }
 
 // MARK: - 高度测量（PreferenceKey 方案）
@@ -284,6 +424,7 @@ extension View {
             }
         )
         .onPreferenceChange(HeightPreferenceKey.self) { newHeight in
+            TestLog.log("measureHeight changed=\(newHeight)")
             height.wrappedValue = newHeight
         }
     }
