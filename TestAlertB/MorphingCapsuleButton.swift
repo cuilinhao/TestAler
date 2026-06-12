@@ -108,6 +108,7 @@ struct MorphingCapsuleButton: View {
         .zIndex(isExpanded ? 10 : 0)
     }
 
+    /// toggle 收起且 ON：整颗胶囊使用黄底（CapsuleChromeBackground）
     private var usesToggleOnChrome: Bool {
         !isExpanded && isOn && item.collapsedStyle.isToggleIcon
     }
@@ -116,6 +117,7 @@ struct MorphingCapsuleButton: View {
         ZStack {
             CapsuleChromeBackground(cornerRadius: cornerRadius, usesToggleOnChrome: usesToggleOnChrome)
 
+            // 收起态内容：比例 badge / 倒计时指示 / toggle icon+title
             CapsuleCollapsedContentView(
                 style: item.collapsedStyle,
                 selectedOption: selectedOption,
@@ -124,6 +126,7 @@ struct MorphingCapsuleButton: View {
             )
             .opacity(isExpanded ? 0 : 1)
 
+            // 展开态：分段胶囊，选中项荧光黄绿高亮
             if isExpanded, !options.isEmpty {
                 optionSegments
             }
@@ -131,6 +134,7 @@ struct MorphingCapsuleButton: View {
         .frame(width: isExpanded ? rowWidth(slotWidth: slotWidth) : slotWidth, height: buttonHeight)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .onTapGesture {
+            // 倒计时进行中 isTapEnabled=false，此处不会触发 onTap
             if !isExpanded && isTapEnabled { onTap() }
         }
     }

@@ -13,9 +13,13 @@ struct CameraSettingsSheet: View {
 
     // 全局互斥：整个面板同一时间只允许一个按钮处于展开状态
     @State private var expandedItemID: String?
+    /// 当前拍摄比例（比例 item 专用）
     @State private var aspectRatio: CameraSettings.AspectRatio = .ratio4x3
+    /// 倒计时选项枚举：关闭 / 3秒 / 10秒；运行结束后会重置为 .off
     @State private var countdown: CameraSettings.Countdown = .off
+    /// 倒计时进行中剩余秒数；nil 表示未在倒计时（收起态显示斜杠 timer）
     @State private var countdownRemainingSeconds: Int?
+    /// 每秒递减的异步 Task；取消 sheet 或重选选项时需 cancel
     @State private var countdownTask: Task<Void, Never>?
     @State private var optionSelections: [String: String] = [:]
     @State private var enabledToggles: Set<String> = []
@@ -40,6 +44,7 @@ struct CameraSettingsSheet: View {
     // 等退场动画基本结束后再从视图树移除，避免过早移除导致底部出现残影。
     private let dismissalCleanupDelay = 0.75
 
+    /// 倒计时是否正在运行；运行中禁止 timer 胶囊再次展开
     private var isCountdownRunning: Bool {
         countdownRemainingSeconds != nil
     }
@@ -292,10 +297,12 @@ struct CameraSettingsSheet: View {
 
     // MARK: - 状态流转
 
+    /// 仅 timer item 需要传入剩余秒数，驱动 CountdownCollapsedView
     private func countdownRemainingSeconds(for item: SettingItem) -> Int? {
         item.itemID == .timer ? countdownRemainingSeconds : nil
     }
 
+    /// 倒计时进行中禁止 timer 点击展开；其余 item 不受影响
     private func isTapEnabled(for item: SettingItem) -> Bool {
         item.itemID != .timer || !isCountdownRunning
     }
@@ -345,11 +352,13 @@ struct CameraSettingsSheet: View {
             "select option=\(option), id=\(item.id), previous=\(selectedOption(for: item) ?? "nil"), expandedBefore=\(expandedItemID ?? "nil")"
         )
 
+        // 倒计时选项：选「关闭」立即取消；选 3秒/10秒 先收起胶囊再开始递减
         if item.itemID == .timer, let value = CameraSettings.Countdown(rawValue: option) {
             if value == .off {
                 cancelCountdown()
                 countdown = .off
             } else if let duration = value.durationSeconds {
+                // 运行态不保留「3秒/10秒」选中项，UI 由 countdownRemainingSeconds 驱动
                 countdown = .off
                 collapseAfterSelection(item: item, option: option) {
                     startCountdown(duration: duration)
@@ -383,11 +392,14 @@ struct CameraSettingsSheet: View {
         }
     }
 
+    /// 启动拍照倒计时：每秒更新 remaining，结束后回调 onCountdownFinished
+    /// 面板收起后 Task 仍继续，直到 completeCountdown
     private func startCountdown(duration: Int) {
         cancelCountdown()
         countdownRemainingSeconds = duration
 
         countdownTask = Task { @MainActor in
+            // 3 → 2 → 1，每步 sleep 1 秒并刷新收起态圆 badge
             for remaining in stride(from: duration, through: 1, by: -1) {
                 countdownRemainingSeconds = remaining
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
@@ -397,12 +409,14 @@ struct CameraSettingsSheet: View {
         }
     }
 
+    /// 取消进行中的倒计时 Task，并清空剩余秒数
     private func cancelCountdown() {
         countdownTask?.cancel()
         countdownTask = nil
         countdownRemainingSeconds = nil
     }
 
+    /// 倒计时自然结束：回到关闭态并通知上层触发拍照
     private func completeCountdown() {
         cancelCountdown()
         countdown = .off

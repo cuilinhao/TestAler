@@ -34,6 +34,7 @@ struct ContentView: View {
         // 弹框 B 作为全屏覆盖层呈现，便于实现自定义形变交互
         .overlay {
             CameraSettingsSheet(isPresented: $isSheetPresented) {
+                // 倒计时 3→2→1 走完后回调；面板可已收起，Task 不随 dismiss 中断
                 // TODO: 触发相机拍照
                 TestLog.log("倒计时结束开始拍照")
             }

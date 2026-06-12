@@ -7,11 +7,12 @@
 
 import Foundation
 
+/// 相机设置面板所有业务枚举的命名空间
 enum CameraSettings {}
 
 extension CameraSettings {
 
-    /// 网格里每个 setting 的稳定标识
+    /// 网格里每个 setting 的稳定标识，与 SettingItem.id 一一对应
     enum ItemID: String, CaseIterable {
         case ratio
         case timer
@@ -26,13 +27,17 @@ extension CameraSettings {
         case voice
     }
 
-    /// 收起态 UI 类型：不同 case 对应不同 Collapsed 子 View
+    /// 收起态 UI 类型：CapsuleCollapsedContentView 按此路由到不同子 View
     enum CollapsedStyle: Equatable {
+        /// 比例：左侧值 badge + 右侧固定标题
         case valueBadge(title: String)
+        /// 倒计时：左侧动态指示（斜杠 timer / 圆 badge 秒数）+ 右侧固定标题
         case countdownIndicator(title: String)
+        /// 开关 / 功能项：icon + 标题；ON 态黄底由 CapsuleChromeBackground 负责
         case toggleIcon(systemName: String, title: String)
     }
 
+    /// 拍摄比例选项
     enum AspectRatio: String, CaseIterable, Identifiable {
         case ratio1x1 = "1:1"
         case ratio4x3 = "4:3"
@@ -40,11 +45,14 @@ extension CameraSettings {
 
         var id: String { rawValue }
 
+        /// 未选择时的默认展示值
         static var defaultValue: Self { .ratio4x3 }
 
+        /// 收起态 badge 与展开态 segment 共用的文案
         var displayText: String { rawValue }
     }
 
+    /// 拍照倒计时选项（选 3秒/10秒 会触发一次倒计时，结束后回到 .off）
     enum Countdown: String, CaseIterable, Identifiable {
         case off = "关闭"
         case three = "3秒"
@@ -52,8 +60,10 @@ extension CameraSettings {
 
         var id: String { rawValue }
 
+        /// 默认初始态：关闭（图2 斜杠 timer）
         static var defaultValue: Self { .off }
 
+        /// 选中 3秒/10秒 时实际倒计时的秒数；关闭为 nil
         var durationSeconds: Int? {
             switch self {
             case .off:
@@ -65,7 +75,7 @@ extension CameraSettings {
             }
         }
 
-        /// 收起态左侧指示：关闭用斜杠 timer，已设置用圆 badge 数字
+        /// 收起态左侧指示类型（静态配置用；运行中由 countdownRemainingSeconds 驱动 UI）
         enum Leading: Equatable {
             case slashTimer
             case seconds(Int)
@@ -91,6 +101,7 @@ extension CameraSettings {
 
 extension CameraSettings.ItemID {
 
+    /// 胶囊右侧/展开菜单使用的固定中文标题
     var displayTitle: String {
         switch self {
         case .ratio: return "比例"
@@ -107,6 +118,7 @@ extension CameraSettings.ItemID {
         }
     }
 
+    /// 每个 item 对应的收起态 UI 类型，业务映射集中在此处
     var collapsedStyle: CameraSettings.CollapsedStyle {
         switch self {
         case .ratio:
@@ -137,6 +149,7 @@ extension CameraSettings.ItemID {
 
 extension CameraSettings.CollapsedStyle {
 
+    /// 是否为 toggle 型收起 UI（ON 态需要整颗胶囊变黄）
     var isToggleIcon: Bool {
         if case .toggleIcon = self { return true }
         return false

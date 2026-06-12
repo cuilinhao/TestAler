@@ -9,9 +9,12 @@ import SwiftUI
 
 // MARK: - 路由
 
+/// 收起态内容路由器：根据 CollapsedStyle 选择对应子 View
 struct CapsuleCollapsedContentView: View {
     let style: CameraSettings.CollapsedStyle
+    /// 当前选中 option 文案（比例 badge 等）；倒计时运行态不读此字段
     let selectedOption: String?
+    /// toggle 是否 ON；决定 icon/文字颜色及外层是否使用黄底
     let isOn: Bool
     /// 倒计时进行中剩余秒数；nil 表示关闭态（斜杠 timer）
     let countdownRemainingSeconds: Int?
@@ -39,12 +42,14 @@ struct CapsuleCollapsedContentView: View {
 
 // MARK: - 比例：左侧值 badge + 右侧标题
 
+/// 比例收起态：[ 4:3 ] + 「比例」
 struct ValueBadgeCollapsedView: View {
     let value: String
     let title: String
 
     var body: some View {
         HStack(spacing: 10) {
+            // 左侧：当前选中比例，白字描边 capsule
             Text(value)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.white)
@@ -55,6 +60,7 @@ struct ValueBadgeCollapsedView: View {
                         .stroke(Color.white.opacity(0.85), lineWidth: 1)
                 }
 
+            // 右侧：固定标题
             Text(title)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(.white)
@@ -66,7 +72,9 @@ struct ValueBadgeCollapsedView: View {
 
 // MARK: - 倒计时：左侧动态指示 + 右侧标题
 
+/// 倒计时收起态：关闭 = 斜杠 timer；运行中 = 圆 badge 递减秒数
 struct CountdownCollapsedView: View {
+    /// 运行中剩余秒数；nil 或 ≤0 时显示关闭态
     let remainingSeconds: Int?
     let title: String
 
@@ -83,6 +91,7 @@ struct CountdownCollapsedView: View {
         .padding(.horizontal, 4)
     }
 
+    /// 根据 remainingSeconds 推导左侧指示类型
     private var leading: CameraSettings.Countdown.Leading {
         if let remainingSeconds, remainingSeconds > 0 {
             return .seconds(remainingSeconds)
@@ -94,6 +103,7 @@ struct CountdownCollapsedView: View {
     private var leadingIndicator: some View {
         switch leading {
         case .slashTimer:
+            // 图2 默认态：timer + 斜杠
             Image(systemName: "timer")
                 .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(.white)
@@ -104,6 +114,7 @@ struct CountdownCollapsedView: View {
                         .rotationEffect(.degrees(-45))
                 }
         case .seconds(let value):
+            // 运行中：圆 badge 显示当前剩余秒数
             ZStack {
                 Circle()
                     .stroke(Color.white.opacity(0.85), lineWidth: 1.5)
@@ -115,8 +126,9 @@ struct CountdownCollapsedView: View {
     }
 }
 
-// MARK: - 开关 / 功能项：icon + 标题（ON 态配色由外层胶囊背景负责）
+// MARK: - 开关 / 功能项：icon + 标题
 
+/// toggle 收起态：OFF 白字；ON 黑字（黄底由 CapsuleChromeBackground 提供）
 struct ToggleIconCollapsedView: View {
     let systemName: String
     let title: String
@@ -136,10 +148,12 @@ struct ToggleIconCollapsedView: View {
     }
 }
 
-// MARK: - 胶囊背景（toggle ON：黄底）
+// MARK: - 胶囊背景
 
+/// 胶囊外层背景：默认毛玻璃；toggle ON 时为荧光黄绿纯色底（无描边）
 struct CapsuleChromeBackground: View {
     let cornerRadius: CGFloat
+    /// 是否使用 toggle ON 态黄底
     let usesToggleOnChrome: Bool
 
     var body: some View {
