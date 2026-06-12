@@ -34,6 +34,8 @@ enum SettingItemKind {
 /// 主题色：选中高亮的荧光黄绿
 enum CapsuleTheme {
     static let accent = Color(red: 0.84, green: 0.95, blue: 0.29)
+    /// toggle ON 态外描边（截图3 蓝色边框）
+    static let onBorder = Color(red: 0.22, green: 0.55, blue: 1.0)
 }
 
 // MARK: - 形变胶囊按钮「只有3个数据」
@@ -103,20 +105,23 @@ struct MorphingCapsuleButton: View {
         .zIndex(isExpanded ? 10 : 0)
     }
 
+    private var usesToggleOnChrome: Bool {
+        !isExpanded && isOn && item.collapsedStyle.isToggleIcon
+    }
+
     private func morphingBody(slotWidth: CGFloat) -> some View {
         ZStack {
-            /// item的配置，颜色 ，填充色
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(.regularMaterial)
-                .environment(\.colorScheme, .dark)
+            CapsuleChromeBackground(cornerRadius: cornerRadius, usesToggleOnChrome: usesToggleOnChrome)
 
-            collapsedLabel
-                .opacity(isExpanded ? 0 : 1)
+            CapsuleCollapsedContentView(
+                style: item.collapsedStyle,
+                selectedOption: selectedOption,
+                isOn: isOn
+            )
+            .opacity(isExpanded ? 0 : 1)
 
-            if !options.isEmpty {
+            if isExpanded, !options.isEmpty {
                 optionSegments
-                    .opacity(isExpanded ? 1 : 0)
-                    .allowsHitTesting(isExpanded)
             }
         }
         .frame(width: isExpanded ? rowWidth(slotWidth: slotWidth) : slotWidth, height: buttonHeight)
@@ -127,18 +132,6 @@ struct MorphingCapsuleButton: View {
             )
             if !isExpanded { onTap() }
         }
-    }
-
-    private var collapsedLabel: some View {
-        HStack(spacing: 8) {
-            Image(systemName: item.icon)
-                .font(.system(size: 18, weight: .medium))
-            Text(item.title)
-                .font(.system(size: 15, weight: .medium))
-        }
-        .foregroundStyle(isOn ? CapsuleTheme.accent : .white)
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
     }
 
     private var optionSegments: some View {

@@ -12,8 +12,9 @@ struct CameraSettingsSheet: View {
 
     // 全局互斥：整个面板同一时间只允许一个按钮处于展开状态
     @State private var expandedItemID: String?
-    // 核心数据：选项选择 / 开关状态。UI 完全由这两份数据推导，不维护中间 UI 状态
-    @State private var optionSelections: [String: String] = ["ratio": "4:3", "timer": "关闭"]
+    @State private var aspectRatio: CameraSettings.AspectRatio = .ratio4x3
+    @State private var countdown: CameraSettings.Countdown = .off
+    @State private var optionSelections: [String: String] = [:]
     @State private var enabledToggles: Set<String> = []
     // 通过 PreferenceKey 测得的网格内容真实高度
     @State private var contentHeight: CGFloat = 0
@@ -39,29 +40,26 @@ struct CameraSettingsSheet: View {
     /// 多行不等列布局：2 / 3 / 3 / 2，每行内部平分宽度
     private static let rows: [[SettingItem]] = [
         [
-            .init(id: "ratio", icon: "aspectratio", title: "比例", kind: .options(["1:1", "4:3", "16:9"]), position: .left),
-            .init(id: "timer", icon: "timer", title: "倒计时", kind: .options(["关闭", "3秒", "10秒"]), position: .right),
+            .init(id: CameraSettings.ItemID.ratio.rawValue, kind: .options(CameraSettings.AspectRatio.allCases.map(\.rawValue)), position: .left),
+            .init(id: CameraSettings.ItemID.timer.rawValue, kind: .options(CameraSettings.Countdown.allCases.map(\.rawValue)), position: .right),
         ],
         [
-            //.init(id: "live", icon: "livephoto.slash", title: "LIVE", kind: .toggle, position: .left),
-            //极限 自动 关闭 标准 运动
-            .init(id: "live", icon: "livephoto.slash", title: "LIVE", kind: .options(["极限", "自动", "关闭", "标准", "运动"]), position: .left),
-            
-            //.init(id: "grid", icon: "grid", title: "网格", kind: .toggle, position: .center),
-            .init(id: "grid", icon: "grid", title: "网格", kind: .options(["1:1", "4:3", "16:9","4:5", "5:6", "8:9"]), position: .center),
-            
-            .init(id: "level", icon: "smallcircle.filled.circle", title: "水平仪", kind: .toggle, position: .right),
+            .init(id: CameraSettings.ItemID.live.rawValue, kind: .options(["极限", "自动", "关闭", "标准", "运动"]), position: .left),
+            .init(id: CameraSettings.ItemID.grid.rawValue, kind: .options(["1:1", "4:3", "16:9", "4:5", "5:6", "8:9"]), position: .center),
+            .init(id: CameraSettings.ItemID.level.rawValue, kind: .toggle, position: .right),
         ],
         [
-            .init(id: "histogram", icon: "chart.bar.fill", title: "直方图", kind: .toggle, position: .left),
-            .init(id: "focusAssist", icon: "camera.metering.spot", title: "对焦辅助", kind: .toggle, position: .center),
-            .init(id: "watermark", icon: "water.waves", title: "水印", kind: .toggle, position: .right),
+            .init(id: CameraSettings.ItemID.histogram.rawValue, kind: .toggle, position: .left),
+            .init(id: CameraSettings.ItemID.focusAssist.rawValue, kind: .toggle, position: .center),
+            .init(id: CameraSettings.ItemID.watermark.rawValue, kind: .toggle, position: .right),
         ],
         [
-            .init(id: "telephoto", icon: "plus.magnifyingglass", title: "长焦模式", kind: .toggle, position: .left),
-            .init(id: "diving", icon: "drop", title: "潜水模式", kind: .toggle, position: .right),
+            .init(id: CameraSettings.ItemID.telephoto.rawValue, kind: .toggle, position: .left),
+            .init(id: CameraSettings.ItemID.diving.rawValue, kind: .toggle, position: .right),
         ],
-        [.init(id: "voice", icon: "livephoto.slash", title: "音频", kind: .options(["极限", "自动", "关闭", "标准", "运动"]), position: .left),]
+        [
+            .init(id: CameraSettings.ItemID.voice.rawValue, kind: .options(["极限", "自动", "关闭", "标准", "运动"]), position: .left),
+        ],
     ]
 
     var body: some View {
@@ -230,7 +228,7 @@ struct CameraSettingsSheet: View {
                     rowItemCount: rowItemCount,
                     isExpanded: expandedItemID == item.id,
                     isOn: enabledToggles.contains(item.id),
-                    selectedOption: optionSelections[item.id],
+                    selectedOption: selectedOption(for: item),
                     onTap: { handleTap(item) },
                     onSelect: { option in select(option, for: item) }
                 )
@@ -241,7 +239,7 @@ struct CameraSettingsSheet: View {
                     rowItemCount: rowItemCount,
                     isExpanded: expandedItemID == item.id,
                     isOn: enabledToggles.contains(item.id),
-                    selectedOption: optionSelections[item.id],
+                    selectedOption: selectedOption(for: item),
                     onTap: { handleTap(item) },
                     onSelect: { option in select(option, for: item) }
                 )
@@ -282,9 +280,20 @@ struct CameraSettingsSheet: View {
 
     // MARK: - 状态流转
 
+    private func selectedOption(for item: SettingItem) -> String? {
+        switch item.itemID {
+        case .ratio:
+            return aspectRatio.rawValue
+        case .timer:
+            return countdown.rawValue
+        default:
+            return optionSelections[item.id]
+        }
+    }
+
     private func handleTap(_ item: SettingItem) {
         TestLog.log(
-            "handleTap id=\(item.id), title=\(item.title), kind=\(debugKindDescription(item.kind)), position=\(debugPositionDescription(item.position)), expandedBefore=\(expandedItemID ?? "nil"), rowOrder=\(debugRowDescription(containing: item)), selected=\(optionSelections[item.id] ?? "nil"), toggles=\(debugToggleDescription())"
+            "handleTap id=\(item.id), title=\(item.title), kind=\(debugKindDescription(item.kind)), position=\(debugPositionDescription(item.position)), expandedBefore=\(expandedItemID ?? "nil"), rowOrder=\(debugRowDescription(containing: item)), selected=\(selectedOption(for: item) ?? "nil"), toggles=\(debugToggleDescription())"
         )
 
         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
@@ -308,10 +317,21 @@ struct CameraSettingsSheet: View {
 
     private func select(_ option: String, for item: SettingItem) {
         TestLog.log(
-            "select option=\(option), id=\(item.id), previous=\(optionSelections[item.id] ?? "nil"), expandedBefore=\(expandedItemID ?? "nil")"
+            "select option=\(option), id=\(item.id), previous=\(selectedOption(for: item) ?? "nil"), expandedBefore=\(expandedItemID ?? "nil")"
         )
 
-        optionSelections[item.id] = option
+        switch item.itemID {
+        case .ratio:
+            if let value = CameraSettings.AspectRatio(rawValue: option) {
+                aspectRatio = value
+            }
+        case .timer:
+            if let value = CameraSettings.Countdown(rawValue: option) {
+                countdown = value
+            }
+        default:
+            optionSelections[item.id] = option
+        }
         // 选择后延迟 0.2 秒，胶囊原路收缩回普通按钮
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {

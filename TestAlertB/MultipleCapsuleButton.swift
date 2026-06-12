@@ -67,6 +67,10 @@ struct MultipleCapsuleButton: View {
     }
 
     /// 形变主体：收起态显示 icon+title，展开态显示可横向滑动的 option 列表
+    private var usesToggleOnChrome: Bool {
+        !isExpanded && isOn && item.collapsedStyle.isToggleIcon
+    }
+
     @ViewBuilder
     private func morphingBody(slotWidth: CGFloat) -> some View {
         // 展开后胶囊的可见宽度 = 当前行整行宽度
@@ -75,14 +79,14 @@ struct MultipleCapsuleButton: View {
         let morphFrameWidth = isExpanded ? expandedWidth : slotWidth
 
         ZStack {
-            // 外层深色毛玻璃胶囊背景
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(.regularMaterial)
-                .environment(\.colorScheme, .dark)
+            CapsuleChromeBackground(cornerRadius: cornerRadius, usesToggleOnChrome: usesToggleOnChrome)
 
-            // 收起态标签：展开时淡出，避免与 option 列表叠影
-            collapsedLabel
-                .opacity(isExpanded ? 0 : 1)
+            CapsuleCollapsedContentView(
+                style: item.collapsedStyle,
+                selectedOption: selectedOption,
+                isOn: isOn
+            )
+            .opacity(isExpanded ? 0 : 1)
 
             // 仅展开态挂载 ScrollView，避免收起态整行宽透明层盖住同行兄弟（如 LIVE）
             if isExpanded, !options.isEmpty {
@@ -95,19 +99,6 @@ struct MultipleCapsuleButton: View {
         .onTapGesture {
             if !isExpanded { onTap() }
         }
-    }
-
-    /// 收起态内容：左侧 SF Symbol + 右侧标题
-    private var collapsedLabel: some View {
-        HStack(spacing: 8) {
-            Image(systemName: item.icon)
-                .font(.system(size: 18, weight: .medium))
-            Text(item.title)
-                .font(.system(size: 15, weight: .medium))
-        }
-        .foregroundStyle(isOn ? CapsuleTheme.accent : .white)
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
     }
 
     /// 展开态横向 option 区域：固定外层宽度为 expandedWidth，内容可超出并滑动
