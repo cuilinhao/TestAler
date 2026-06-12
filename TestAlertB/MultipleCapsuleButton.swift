@@ -95,6 +95,8 @@ struct MultipleCapsuleButton: View {
     private func morphingBody(slotWidth: CGFloat) -> some View {
         // 展开后胶囊的可见宽度 = 当前行整行宽度
         let expandedWidth = rowWidth(slotWidth: slotWidth)
+        // 形变体外层实际 frame 宽度：收起 = slotWidth，展开 = expandedWidth
+        let morphFrameWidth = isExpanded ? expandedWidth : slotWidth
 
         ZStack {
             // 外层深色毛玻璃胶囊背景
@@ -106,17 +108,32 @@ struct MultipleCapsuleButton: View {
             collapsedLabel
                 .opacity(isExpanded ? 0 : 1)
 
-            if !options.isEmpty {
-                // 展开态 option 区域：横向滑动 + 边缘渐淡
+            // 仅展开态挂载 ScrollView，避免收起态整行宽透明层盖住同行兄弟（如 LIVE）
+            if isExpanded, !options.isEmpty {
                 scrollableOptions(expandedWidth: expandedWidth)
-                    .opacity(isExpanded ? 1 : 0)
-                    // 收起态禁止 option 区域响应点击，避免误触
-                    .allowsHitTesting(isExpanded)
             }
         }
         // 形变宽度：收起 = slotWidth，展开 = expandedWidth
-        .frame(width: isExpanded ? expandedWidth : slotWidth, height: buttonHeight)
+        .frame(width: morphFrameWidth, height: buttonHeight)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .onAppear {
+            logMorphingBody(
+                slotWidth: slotWidth,
+                expandedWidth: expandedWidth,
+                morphFrameWidth: morphFrameWidth,
+                scrollMounted: isExpanded,
+                reason: "morphingBodyAppear"
+            )
+        }
+        .onChange(of: isExpanded) { newValue in
+            logMorphingBody(
+                slotWidth: slotWidth,
+                expandedWidth: expandedWidth,
+                morphFrameWidth: newValue ? expandedWidth : slotWidth,
+                scrollMounted: newValue,
+                reason: "isExpandedChanged=\(newValue)"
+            )
+        }
         .onTapGesture {
             TestLog.log(
                 "tap id=\(item.id), title=\(item.title), isExpandedBefore=\(isExpanded), selected=\(selectedOption ?? "nil")"
@@ -164,9 +181,15 @@ struct MultipleCapsuleButton: View {
             .coordinateSpace(name: "capsuleViewport")
             // 滚动区域宽度锁死为 expandedWidth，不会随 option 数量撑宽外层
             .frame(width: expandedWidth, height: buttonHeight)
+            .onAppear {
+                TestLog.log(
+                    "multipleScrollArea id=\(item.id) isExpanded=\(isExpanded) scrollFrameWidth=\(debugNumber(expandedWidth)) optionCellWidth=\(debugNumber(optionCellWidth)) optionCount=\(options.count)"
+                )
+                // 展开态首次挂载 ScrollView 时滚到当前选中项
+                scrollToSelected(using: proxy)
+            }
             .onChange(of: isExpanded) { expanded in
                 if expanded {
-                    // 展开后把当前选中项滚到胶囊中心附近
                     scrollToSelected(using: proxy)
                 }
             }
@@ -239,6 +262,20 @@ struct MultipleCapsuleButton: View {
 
         TestLog.log(
             "layout reason=\(reason), id=\(item.id), title=\(item.title), position=\(debugPositionDescription(item.position)), rowItemCount=\(rowItemCount), loggedExpanded=\(expandedValue), selected=\(selectedValue ?? "nil"), slotWidth=\(debugNumber(slotWidth)), visibleWidth=\(debugNumber(visibleWidth)), viewZIndex=\(expandedValue ? 10 : 0)"
+        )
+    }
+
+    /// 对比 slotWidth / expandedWidth / morphFrameWidth / scrollMounted，排查收起态 ScrollView 是否仍占整行宽
+    private func logMorphingBody(
+        slotWidth: CGFloat,
+        expandedWidth: CGFloat,
+        morphFrameWidth: CGFloat,
+        scrollMounted: Bool,
+        reason: String
+    ) {
+        let scrollFrameWidth = scrollMounted ? expandedWidth : 0
+        TestLog.log(
+            "multipleLayout reason=\(reason), id=\(item.id), isExpanded=\(isExpanded), slotWidth=\(debugNumber(slotWidth)), expandedWidth=\(debugNumber(expandedWidth)), morphFrameWidth=\(debugNumber(morphFrameWidth)), scrollMounted=\(scrollMounted), scrollFrameWidth=\(debugNumber(scrollFrameWidth)), scrollWiderThanSlot=\(scrollFrameWidth > slotWidth + 0.5)"
         )
     }
 
