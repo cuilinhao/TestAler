@@ -29,22 +29,14 @@ enum SettingItemKind {
     case options([String])
 }
 
- //MARK: - 数据模型
-struct SettingItem: Identifiable {
-    /// 使用稳定的字符串 id（而非 UUID()），保证视图重建后展开/选中状态不丢失
-    let id: String
-    let icon: String
-    let title: String
-    let kind: SettingItemKind
-    let position: ButtonPosition
-}
+
 
 /// 主题色：选中高亮的荧光黄绿
 enum CapsuleTheme {
     static let accent = Color(red: 0.84, green: 0.95, blue: 0.29)
 }
 
-// MARK: - 形变胶囊按钮
+// MARK: - 形变胶囊按钮「只有3个数据」
 
 struct MorphingCapsuleButton: View {
     let item: SettingItem
@@ -113,6 +105,7 @@ struct MorphingCapsuleButton: View {
 
     private func morphingBody(slotWidth: CGFloat) -> some View {
         ZStack {
+            /// item的配置，颜色 ，填充色
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(.regularMaterial)
                 .environment(\.colorScheme, .dark)

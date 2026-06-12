@@ -44,7 +44,10 @@ struct CameraSettingsSheet: View {
         ],
         [
             .init(id: "live", icon: "livephoto.slash", title: "LIVE", kind: .toggle, position: .left),
-            .init(id: "grid", icon: "grid", title: "网格", kind: .toggle, position: .center),
+            //.init(id: "grid", icon: "grid", title: "网格", kind: .toggle, position: .center),
+            
+            .init(id: "grid", icon: "grid", title: "网格", kind: .options(["1:1", "4:3", "16:9","4:5", "5:6", "8:9"]), position: .center),
+            
             .init(id: "level", icon: "smallcircle.filled.circle", title: "水平仪", kind: .toggle, position: .right),
         ],
         [
