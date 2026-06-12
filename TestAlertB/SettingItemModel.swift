@@ -28,6 +28,6 @@ struct SettingItem: Identifiable {
 
     /// 收起态 UI 类型，来自 CameraSettings.ItemID 映射
     var collapsedStyle: CameraSettings.CollapsedStyle {
-        itemID?.collapsedStyle ?? .toggleIcon(systemName: "questionmark.circle", title: title)
+        itemID?.collapsedStyle ?? .toggleIcon(offSystemName: "questionmark.circle", onSystemName: "questionmark.circle", title: title)
     }
 }

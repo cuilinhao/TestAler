@@ -33,8 +33,8 @@ extension CameraSettings {
         case valueBadge(title: String)
         /// 倒计时：左侧动态指示（斜杠 timer / 圆 badge 秒数）+ 右侧固定标题
         case countdownIndicator(title: String)
-        /// 开关 / 功能项：icon + 标题；ON 态黄底由 CapsuleChromeBackground 负责
-        case toggleIcon(systemName: String, title: String)
+        /// 开关 / 功能项：icon + 标题；ON/OFF 可配置不同 SF Symbol（如 LIVE）
+        case toggleIcon(offSystemName: String, onSystemName: String, title: String)
     }
 
     /// 拍摄比例选项
@@ -126,23 +126,24 @@ extension CameraSettings.ItemID {
         case .timer:
             return .countdownIndicator(title: displayTitle)
         case .live:
-            return .toggleIcon(systemName: "livephoto.slash", title: displayTitle)
+            // OFF：同心圆 + 斜杠；ON：同心圆（与系统相机 Live Photo 一致）
+            return .toggleIcon(offSystemName: "livephoto.slash", onSystemName: "livephoto", title: displayTitle)
         case .grid:
-            return .toggleIcon(systemName: "grid", title: displayTitle)
+            return .toggleIcon(offSystemName: "grid", onSystemName: "grid", title: displayTitle)
         case .level:
-            return .toggleIcon(systemName: "smallcircle.filled.circle", title: displayTitle)
+            return .toggleIcon(offSystemName: "smallcircle.filled.circle", onSystemName: "smallcircle.filled.circle", title: displayTitle)
         case .histogram:
-            return .toggleIcon(systemName: "chart.bar.fill", title: displayTitle)
+            return .toggleIcon(offSystemName: "chart.bar.fill", onSystemName: "chart.bar.fill", title: displayTitle)
         case .focusAssist:
-            return .toggleIcon(systemName: "camera.metering.spot", title: displayTitle)
+            return .toggleIcon(offSystemName: "camera.metering.spot", onSystemName: "camera.metering.spot", title: displayTitle)
         case .watermark:
-            return .toggleIcon(systemName: "water.waves", title: displayTitle)
+            return .toggleIcon(offSystemName: "water.waves", onSystemName: "water.waves", title: displayTitle)
         case .telephoto:
-            return .toggleIcon(systemName: "plus.magnifyingglass", title: displayTitle)
+            return .toggleIcon(offSystemName: "plus.magnifyingglass", onSystemName: "plus.magnifyingglass", title: displayTitle)
         case .diving:
-            return .toggleIcon(systemName: "drop", title: displayTitle)
+            return .toggleIcon(offSystemName: "drop", onSystemName: "drop", title: displayTitle)
         case .voice:
-            return .toggleIcon(systemName: "waveform", title: displayTitle)
+            return .toggleIcon(offSystemName: "waveform", onSystemName: "waveform", title: displayTitle)
         }
     }
 }

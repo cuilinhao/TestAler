@@ -32,8 +32,13 @@ struct CapsuleCollapsedContentView: View {
                     remainingSeconds: countdownRemainingSeconds,
                     title: title
                 )
-            case .toggleIcon(let systemName, let title):
-                ToggleIconCollapsedView(systemName: systemName, title: title, isOn: isOn)
+            case .toggleIcon(let offSystemName, let onSystemName, let title):
+                ToggleIconCollapsedView(
+                    offSystemName: offSystemName,
+                    onSystemName: onSystemName,
+                    title: title,
+                    isOn: isOn
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -130,9 +135,15 @@ struct CountdownCollapsedView: View {
 
 /// toggle 收起态：OFF 白字；ON 黑字（黄底由 CapsuleChromeBackground 提供）
 struct ToggleIconCollapsedView: View {
-    let systemName: String
+    let offSystemName: String
+    let onSystemName: String
     let title: String
     let isOn: Bool
+
+    /// 按开关态选择 SF Symbol；LIVE 等 item 的 ON/OFF icon 不同
+    private var systemName: String {
+        isOn ? onSystemName : offSystemName
+    }
 
     var body: some View {
         HStack(spacing: 8) {

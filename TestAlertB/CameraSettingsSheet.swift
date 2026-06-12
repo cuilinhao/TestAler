@@ -56,7 +56,9 @@ struct CameraSettingsSheet: View {
             .init(id: CameraSettings.ItemID.timer.rawValue, kind: .options(CameraSettings.Countdown.allCases.map(\.rawValue)), position: .right),
         ],
         [
-            .init(id: CameraSettings.ItemID.live.rawValue, kind: .options(["极限", "自动", "关闭", "标准", "运动"]), position: .left),
+            // .init(id: CameraSettings.ItemID.live.rawValue, kind: .options(["极限", "自动", "关闭", "标准", "运动"]), position: .left),
+            .init(id: CameraSettings.ItemID.live.rawValue, kind: .toggle, position: .left),
+            
             .init(id: CameraSettings.ItemID.grid.rawValue, kind: .options(["1:1", "4:3", "16:9", "4:5", "5:6", "8:9"]), position: .center),
             .init(id: CameraSettings.ItemID.level.rawValue, kind: .toggle, position: .right),
         ],
