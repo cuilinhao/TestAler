@@ -29,6 +29,7 @@ enum SettingItemKind {
     case options([String])
 }
 
+ //MARK: - 数据模型
 struct SettingItem: Identifiable {
     /// 使用稳定的字符串 id（而非 UUID()），保证视图重建后展开/选中状态不丢失
     let id: String

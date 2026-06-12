@@ -27,7 +27,14 @@ struct CameraSettingsSheet: View {
     /// 顶部拖拽指示条区域的固定高度（参与 Sheet 总高度计算）
     private let grabberZoneHeight: CGFloat = 32
     private let visibleBackdropOpacity = 0.35
+    // 入场保持轻快，避免点击按钮 A 后弹框响应显得拖沓。
     private let presentationAnimation = Animation.spring(response: 0.4, dampingFraction: 0.85)
+    
+    ///弹框dismiss的时间
+    /// response 可以理解成弹簧反应时间，越大越慢
+    private let dismissalAnimation = Animation.spring(response: 1.0, dampingFraction: 0.9)
+    // 等退场动画基本结束后再从视图树移除，避免过早移除导致底部出现残影。
+    private let dismissalCleanupDelay = 0.75
 
     /// 多行不等列布局：2 / 3 / 3 / 2，每行内部平分宽度
     private static let rows: [[SettingItem]] = [
@@ -332,17 +339,17 @@ struct CameraSettingsSheet: View {
         TestLog.log(
             "dismiss animation start, screenHeight=\(debugNumber(screenHeight)), sheetOffset=\(debugNumber(sheetOffset)), dragOffset=\(debugNumber(dragOffset)), backdropOpacity=\(backdropOpacity)"
         )
-
-        withAnimation(presentationAnimation) {
+        // 退场只改变偏移和遮罩透明度，真正移除视图放到 cleanup 阶段。
+        withAnimation(dismissalAnimation) {
             expandedItemID = nil
             sheetOffset = screenHeight
             backdropOpacity = 0
             dragOffset = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + dismissalCleanupDelay) {
             guard !isPresented else {
-                TestLog.log("dismiss animation cleanup skipped, isPresented=true")
+                TestLog.log("+++ dismiss animation cleanup skipped, isPresented=true")
                 return
             }
 
@@ -352,7 +359,7 @@ struct CameraSettingsSheet: View {
             dragOffset = 0
 
             TestLog.log(
-                "dismiss animation cleanup, isRendered=\(isRendered), sheetOffset=\(debugNumber(sheetOffset)), backdropOpacity=\(backdropOpacity), dragOffset=\(debugNumber(dragOffset))"
+                "+++ dismiss animation cleanup, isRendered=\(isRendered), sheetOffset=\(debugNumber(sheetOffset)), backdropOpacity=\(backdropOpacity), dragOffset=\(debugNumber(dragOffset))"
             )
         }
     }
