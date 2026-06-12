@@ -186,26 +186,12 @@ struct CameraSettingsSheet: View {
 
                 HStack(spacing: 12) {
                     ForEach(row) { item in
-                        let isCoveredByExpandedSibling = expandedIDInRow != nil && expandedIDInRow != item.id
-
-                        MorphingCapsuleButton(
-                            item: item,
+                        settingCapsuleButton(
+                            for: item,
                             rowItemCount: row.count,
-                            isExpanded: expandedItemID == item.id,
-                            isOn: enabledToggles.contains(item.id),
-                            selectedOption: optionSelections[item.id],
-                            onTap: { handleTap(item) },
-                            onSelect: { option in select(option, for: item) }
+                            rowIndex: rowIndex,
+                            expandedIDInRow: expandedIDInRow
                         )
-                        .zIndex(expandedItemID == item.id ? 10 : 0)
-                        .opacity(isCoveredByExpandedSibling ? 0 : 1)
-                        .allowsHitTesting(!isCoveredByExpandedSibling)
-                        .accessibilityHidden(isCoveredByExpandedSibling)
-                        .onChange(of: isCoveredByExpandedSibling) { isCovered in
-                            TestLog.log(
-                                "row sibling coverage item=\(item.id), rowIndex=\(rowIndex), expandedIDInRow=\(expandedIDInRow ?? "nil"), isCovered=\(isCovered)"
-                            )
-                        }
                     }
                 }
                 .onAppear {
@@ -219,6 +205,53 @@ struct CameraSettingsSheet: View {
         .padding(.bottom, 24)
         // PreferenceKey 方案测量内容真实高度，驱动 Sheet 高度自适应
         .measureHeight($contentHeight)
+    }
+
+    /// 根据 option 数量自动选择胶囊组件，并统一处理同行兄弟覆盖逻辑
+    @ViewBuilder
+    private func settingCapsuleButton(
+        for item: SettingItem,
+        rowItemCount: Int,
+        rowIndex: Int,
+        expandedIDInRow: String?
+    ) -> some View {
+        // 同一行有 item 展开时，其余兄弟 item 隐藏且不可点击，避免与展开胶囊叠层冲突
+        let isCoveredByExpandedSibling = expandedIDInRow != nil && expandedIDInRow != item.id
+
+        Group {
+            if case .options(let opts) = item.kind, opts.count > 3 {
+                // 选项 > 3：使用多选项滑动胶囊（如「网格」6 个比例）
+                MultipleCapsuleButton(
+                    item: item,
+                    rowItemCount: rowItemCount,
+                    isExpanded: expandedItemID == item.id,
+                    isOn: enabledToggles.contains(item.id),
+                    selectedOption: optionSelections[item.id],
+                    onTap: { handleTap(item) },
+                    onSelect: { option in select(option, for: item) }
+                )
+            } else {
+                // toggle 或 options ≤ 3：使用原形变分段胶囊（如「比例」「倒计时」）
+                MorphingCapsuleButton(
+                    item: item,
+                    rowItemCount: rowItemCount,
+                    isExpanded: expandedItemID == item.id,
+                    isOn: enabledToggles.contains(item.id),
+                    selectedOption: optionSelections[item.id],
+                    onTap: { handleTap(item) },
+                    onSelect: { option in select(option, for: item) }
+                )
+            }
+        }
+        .zIndex(expandedItemID == item.id ? 10 : 0)
+        .opacity(isCoveredByExpandedSibling ? 0 : 1)
+        .allowsHitTesting(!isCoveredByExpandedSibling)
+        .accessibilityHidden(isCoveredByExpandedSibling)
+        .onChange(of: isCoveredByExpandedSibling) { isCovered in
+            TestLog.log(
+                "row sibling coverage item=\(item.id), rowIndex=\(rowIndex), expandedIDInRow=\(expandedIDInRow ?? "nil"), isCovered=\(isCovered)"
+            )
+        }
     }
 
     // MARK: - 手势
