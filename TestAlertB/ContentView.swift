@@ -32,7 +32,12 @@ struct ContentView: View {
             }
         }
         // 弹框 B 作为全屏覆盖层呈现，便于实现自定义形变交互
-        .overlay(CameraSettingsSheet(isPresented: $isSheetPresented))
+        .overlay {
+            CameraSettingsSheet(isPresented: $isSheetPresented) {
+                // TODO: 触发相机拍照
+                TestLog.log("倒计时结束开始拍照")
+            }
+        }
         .preferredColorScheme(.dark)
     }
 }

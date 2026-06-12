@@ -54,6 +54,17 @@ extension CameraSettings {
 
         static var defaultValue: Self { .off }
 
+        var durationSeconds: Int? {
+            switch self {
+            case .off:
+                return nil
+            case .three:
+                return 3
+            case .ten:
+                return 10
+            }
+        }
+
         /// 收起态左侧指示：关闭用斜杠 timer，已设置用圆 badge 数字
         enum Leading: Equatable {
             case slashTimer

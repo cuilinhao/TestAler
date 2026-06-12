@@ -9,11 +9,14 @@ import SwiftUI
 
 struct CameraSettingsSheet: View {
     @Binding var isPresented: Bool
+    var onCountdownFinished: () -> Void
 
     // 全局互斥：整个面板同一时间只允许一个按钮处于展开状态
     @State private var expandedItemID: String?
     @State private var aspectRatio: CameraSettings.AspectRatio = .ratio4x3
     @State private var countdown: CameraSettings.Countdown = .off
+    @State private var countdownRemainingSeconds: Int?
+    @State private var countdownTask: Task<Void, Never>?
     @State private var optionSelections: [String: String] = [:]
     @State private var enabledToggles: Set<String> = []
     // 通过 PreferenceKey 测得的网格内容真实高度
@@ -36,6 +39,10 @@ struct CameraSettingsSheet: View {
     private let dismissalAnimation = Animation.spring(response: 1.0, dampingFraction: 0.9)
     // 等退场动画基本结束后再从视图树移除，避免过早移除导致底部出现残影。
     private let dismissalCleanupDelay = 0.75
+
+    private var isCountdownRunning: Bool {
+        countdownRemainingSeconds != nil
+    }
 
     /// 多行不等列布局：2 / 3 / 3 / 2，每行内部平分宽度
     private static let rows: [[SettingItem]] = [
@@ -219,6 +226,7 @@ struct CameraSettingsSheet: View {
     ) -> some View {
         // 同一行有 item 展开时，其余兄弟 item 隐藏且不可点击，避免与展开胶囊叠层冲突
         let isCoveredByExpandedSibling = expandedIDInRow != nil && expandedIDInRow != item.id
+        let isItemTapEnabled = isTapEnabled(for: item)
 
         Group {
             if case .options(let opts) = item.kind, opts.count > 3 {
@@ -229,6 +237,8 @@ struct CameraSettingsSheet: View {
                     isExpanded: expandedItemID == item.id,
                     isOn: enabledToggles.contains(item.id),
                     selectedOption: selectedOption(for: item),
+                    countdownRemainingSeconds: countdownRemainingSeconds(for: item),
+                    isTapEnabled: isItemTapEnabled,
                     onTap: { handleTap(item) },
                     onSelect: { option in select(option, for: item) }
                 )
@@ -240,6 +250,8 @@ struct CameraSettingsSheet: View {
                     isExpanded: expandedItemID == item.id,
                     isOn: enabledToggles.contains(item.id),
                     selectedOption: selectedOption(for: item),
+                    countdownRemainingSeconds: countdownRemainingSeconds(for: item),
+                    isTapEnabled: isItemTapEnabled,
                     onTap: { handleTap(item) },
                     onSelect: { option in select(option, for: item) }
                 )
@@ -247,7 +259,7 @@ struct CameraSettingsSheet: View {
         }
         .zIndex(expandedItemID == item.id ? 10 : 0)
         .opacity(isCoveredByExpandedSibling ? 0 : 1)
-        .allowsHitTesting(!isCoveredByExpandedSibling)
+        .allowsHitTesting(!isCoveredByExpandedSibling && isItemTapEnabled)
         .accessibilityHidden(isCoveredByExpandedSibling)
         .onChange(of: isCoveredByExpandedSibling) { isCovered in
             TestLog.log(
@@ -280,6 +292,14 @@ struct CameraSettingsSheet: View {
 
     // MARK: - 状态流转
 
+    private func countdownRemainingSeconds(for item: SettingItem) -> Int? {
+        item.itemID == .timer ? countdownRemainingSeconds : nil
+    }
+
+    private func isTapEnabled(for item: SettingItem) -> Bool {
+        item.itemID != .timer || !isCountdownRunning
+    }
+
     private func selectedOption(for item: SettingItem) -> String? {
         switch item.itemID {
         case .ratio:
@@ -292,6 +312,11 @@ struct CameraSettingsSheet: View {
     }
 
     private func handleTap(_ item: SettingItem) {
+        if item.itemID == .timer, isCountdownRunning {
+            TestLog.log("handleTap blocked, countdown running")
+            return
+        }
+
         TestLog.log(
             "handleTap id=\(item.id), title=\(item.title), kind=\(debugKindDescription(item.kind)), position=\(debugPositionDescription(item.position)), expandedBefore=\(expandedItemID ?? "nil"), rowOrder=\(debugRowDescription(containing: item)), selected=\(selectedOption(for: item) ?? "nil"), toggles=\(debugToggleDescription())"
         )
@@ -320,18 +345,32 @@ struct CameraSettingsSheet: View {
             "select option=\(option), id=\(item.id), previous=\(selectedOption(for: item) ?? "nil"), expandedBefore=\(expandedItemID ?? "nil")"
         )
 
+        if item.itemID == .timer, let value = CameraSettings.Countdown(rawValue: option) {
+            if value == .off {
+                cancelCountdown()
+                countdown = .off
+            } else if let duration = value.durationSeconds {
+                countdown = .off
+                collapseAfterSelection(item: item, option: option) {
+                    startCountdown(duration: duration)
+                }
+                return
+            }
+        }
+
         switch item.itemID {
         case .ratio:
             if let value = CameraSettings.AspectRatio(rawValue: option) {
                 aspectRatio = value
             }
-        case .timer:
-            if let value = CameraSettings.Countdown(rawValue: option) {
-                countdown = value
-            }
         default:
             optionSelections[item.id] = option
         }
+
+        collapseAfterSelection(item: item, option: option)
+    }
+
+    private func collapseAfterSelection(item: SettingItem, option: String, completion: (() -> Void)? = nil) {
         // 选择后延迟 0.2 秒，胶囊原路收缩回普通按钮
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
@@ -340,7 +379,34 @@ struct CameraSettingsSheet: View {
             TestLog.log(
                 "select collapse id=\(item.id), option=\(option), expandedAfter=\(expandedItemID ?? "nil")"
             )
+            completion?()
         }
+    }
+
+    private func startCountdown(duration: Int) {
+        cancelCountdown()
+        countdownRemainingSeconds = duration
+
+        countdownTask = Task { @MainActor in
+            for remaining in stride(from: duration, through: 1, by: -1) {
+                countdownRemainingSeconds = remaining
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                if Task.isCancelled { return }
+            }
+            completeCountdown()
+        }
+    }
+
+    private func cancelCountdown() {
+        countdownTask?.cancel()
+        countdownTask = nil
+        countdownRemainingSeconds = nil
+    }
+
+    private func completeCountdown() {
+        cancelCountdown()
+        countdown = .off
+        onCountdownFinished()
     }
 
     private func collapseExpanded() {

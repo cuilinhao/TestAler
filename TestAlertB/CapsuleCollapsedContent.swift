@@ -13,6 +13,8 @@ struct CapsuleCollapsedContentView: View {
     let style: CameraSettings.CollapsedStyle
     let selectedOption: String?
     let isOn: Bool
+    /// 倒计时进行中剩余秒数；nil 表示关闭态（斜杠 timer）
+    let countdownRemainingSeconds: Int?
 
     var body: some View {
         Group {
@@ -24,7 +26,7 @@ struct CapsuleCollapsedContentView: View {
                 )
             case .countdownIndicator(let title):
                 CountdownCollapsedView(
-                    countdown: CameraSettings.Countdown(selection: selectedOption) ?? .off,
+                    remainingSeconds: countdownRemainingSeconds,
                     title: title
                 )
             case .toggleIcon(let systemName, let title):
@@ -65,7 +67,7 @@ struct ValueBadgeCollapsedView: View {
 // MARK: - 倒计时：左侧动态指示 + 右侧标题
 
 struct CountdownCollapsedView: View {
-    let countdown: CameraSettings.Countdown
+    let remainingSeconds: Int?
     let title: String
 
     var body: some View {
@@ -81,9 +83,16 @@ struct CountdownCollapsedView: View {
         .padding(.horizontal, 4)
     }
 
+    private var leading: CameraSettings.Countdown.Leading {
+        if let remainingSeconds, remainingSeconds > 0 {
+            return .seconds(remainingSeconds)
+        }
+        return .slashTimer
+    }
+
     @ViewBuilder
     private var leadingIndicator: some View {
-        switch countdown.leading {
+        switch leading {
         case .slashTimer:
             Image(systemName: "timer")
                 .font(.system(size: 18, weight: .medium))
@@ -127,7 +136,7 @@ struct ToggleIconCollapsedView: View {
     }
 }
 
-// MARK: - 胶囊背景（toggle ON：黄底 + 蓝描边）
+// MARK: - 胶囊背景（toggle ON：黄底）
 
 struct CapsuleChromeBackground: View {
     let cornerRadius: CGFloat
@@ -138,10 +147,6 @@ struct CapsuleChromeBackground: View {
             if usesToggleOnChrome {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(CapsuleTheme.accent)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .strokeBorder(CapsuleTheme.onBorder, lineWidth: 2)
-                    }
             } else {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(.regularMaterial)

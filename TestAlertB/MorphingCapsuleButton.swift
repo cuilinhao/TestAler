@@ -34,8 +34,6 @@ enum SettingItemKind {
 /// 主题色：选中高亮的荧光黄绿
 enum CapsuleTheme {
     static let accent = Color(red: 0.84, green: 0.95, blue: 0.29)
-    /// toggle ON 态外描边（截图3 蓝色边框）
-    static let onBorder = Color(red: 0.22, green: 0.55, blue: 1.0)
 }
 
 // MARK: - 形变胶囊按钮「只有3个数据」
@@ -46,7 +44,12 @@ struct MorphingCapsuleButton: View {
     let rowItemCount: Int
     let isExpanded: Bool
     let isOn: Bool
+    /// 当前选中的 option 文案，由父级 optionSelections 传入
     let selectedOption: String?
+    /// 倒计时 item 进行中剩余秒数；非 timer item 传 nil
+    let countdownRemainingSeconds: Int?
+    /// 是否允许点击收起态胶囊（倒计时进行中为 false）
+    let isTapEnabled: Bool
     let onTap: () -> Void
     let onSelect: (String) -> Void
 
@@ -116,7 +119,8 @@ struct MorphingCapsuleButton: View {
             CapsuleCollapsedContentView(
                 style: item.collapsedStyle,
                 selectedOption: selectedOption,
-                isOn: isOn
+                isOn: isOn,
+                countdownRemainingSeconds: countdownRemainingSeconds
             )
             .opacity(isExpanded ? 0 : 1)
 
@@ -127,10 +131,7 @@ struct MorphingCapsuleButton: View {
         .frame(width: isExpanded ? rowWidth(slotWidth: slotWidth) : slotWidth, height: buttonHeight)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .onTapGesture {
-            TestLog.log(
-                "tap id=\(item.id), title=\(item.title), isExpandedBefore=\(isExpanded), selected=\(selectedOption ?? "nil")"
-            )
-            if !isExpanded { onTap() }
+            if !isExpanded && isTapEnabled { onTap() }
         }
     }
 
