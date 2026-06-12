@@ -198,23 +198,6 @@ struct CameraSettingsSheet: View {
                         )
                     }
                 }
-                .background {
-                    if rowIndex == 1 {
-                        GeometryReader { proxy in
-                            Color.clear
-                                .onAppear {
-                                    TestLog.log(
-                                        "rowContainer row=\(rowIndex) width=\(debugNumber(proxy.size.width)), itemCount=\(row.count), paintOrder=\(debugRowDescription(row))"
-                                    )
-                                }
-                                .onChange(of: proxy.size.width) { newWidth in
-                                    TestLog.log(
-                                        "rowContainer row=\(rowIndex) widthChanged=\(debugNumber(newWidth)), expandedID=\(expandedItemID ?? "nil")"
-                                    )
-                                }
-                        }
-                    }
-                }
                 .onAppear {
                     TestLog.log(
                         "row appear index=\(rowIndex), paintOrder=\(debugRowDescription(row))"
@@ -224,11 +207,6 @@ struct CameraSettingsSheet: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 24)
-        // 命名坐标系：供 itemFrame 日志读取同一参考系下的 minX / width
-        .coordinateSpace(name: "settingsGrid")
-        .onPreferenceChange(ItemFramePreferenceKey.self) { frames in
-            logItemFrames(frames)
-        }
         // PreferenceKey 方案测量内容真实高度，驱动 Sheet 高度自适应
         .measureHeight($contentHeight)
     }
@@ -243,10 +221,6 @@ struct CameraSettingsSheet: View {
     ) -> some View {
         // 同一行有 item 展开时，其余兄弟 item 隐藏且不可点击，避免与展开胶囊叠层冲突
         let isCoveredByExpandedSibling = expandedIDInRow != nil && expandedIDInRow != item.id
-        let componentName: String = {
-            if case .options(let opts) = item.kind, opts.count > 3 { return "Multiple" }
-            return "Morphing"
-        }()
 
         Group {
             if case .options(let opts) = item.kind, opts.count > 3 {
@@ -277,21 +251,6 @@ struct CameraSettingsSheet: View {
         .opacity(isCoveredByExpandedSibling ? 0 : 1)
         .allowsHitTesting(!isCoveredByExpandedSibling)
         .accessibilityHidden(isCoveredByExpandedSibling)
-        // 测量 capsule 在 settingsGrid 坐标系下的真实 frame，排查 LIVE 是否 width=0 或被挤没
-        .measureItemFrame(rowIndex: rowIndex, itemID: item.id)
-        .onAppear {
-            TestLog.log(
-                "capsuleState row=\(rowIndex) id=\(item.id) title=\(item.title) component=\(componentName) rowItemCount=\(rowItemCount) expandedID=\(expandedItemID ?? "nil") expandedInRow=\(expandedIDInRow ?? "nil") covered=\(isCoveredByExpandedSibling) opacity=\(isCoveredByExpandedSibling ? 0 : 1) zIndex=\(expandedItemID == item.id ? 10 : 0)"
-            )
-        }
-        .onChange(of: expandedItemID) { newValue in
-            guard rowIndex == 1 || item.id == "live" || item.id == "grid" else { return }
-            let expandedInRow = Self.rows[rowIndex].first { $0.id == newValue }?.id
-            let covered = expandedInRow != nil && expandedInRow != item.id
-            TestLog.log(
-                "capsuleState expandedIDChanged row=\(rowIndex) id=\(item.id) expandedID=\(newValue ?? "nil") expandedInRow=\(expandedInRow ?? "nil") covered=\(covered) opacity=\(covered ? 0 : 1)"
-            )
-        }
         .onChange(of: isCoveredByExpandedSibling) { isCovered in
             TestLog.log(
                 "row sibling coverage item=\(item.id), rowIndex=\(rowIndex), expandedIDInRow=\(expandedIDInRow ?? "nil"), isCovered=\(isCovered)"
@@ -492,37 +451,9 @@ struct CameraSettingsSheet: View {
         let rounded = (Double(value) * 10).rounded() / 10
         return "\(rounded)"
     }
-
-    /// 输出网格 item 的真实布局 frame；默认重点打印第二行（LIVE / 网格 / 水平仪）
-    private func logItemFrames(_ frames: [ItemFrameDebugInfo]) {
-        let sortedFrames = frames.sorted {
-            if $0.rowIndex != $1.rowIndex { return $0.rowIndex < $1.rowIndex }
-            return $0.itemID < $1.itemID
-        }
-
-        for info in sortedFrames where info.rowIndex == 1 {
-            TestLog.log(
-                "itemFrame row=\(info.rowIndex) id=\(info.itemID) minX=\(debugNumber(info.frame.minX)) minY=\(debugNumber(info.frame.minY)) width=\(debugNumber(info.frame.width)) height=\(debugNumber(info.frame.height)) maxX=\(debugNumber(info.frame.maxX))"
-            )
-        }
-    }
 }
 
 // MARK: - 高度测量（PreferenceKey 方案）
-
-struct ItemFrameDebugInfo: Equatable {
-    let rowIndex: Int
-    let itemID: String
-    let frame: CGRect
-}
-
-struct ItemFramePreferenceKey: PreferenceKey {
-    static var defaultValue: [ItemFrameDebugInfo] = []
-
-    static func reduce(value: inout [ItemFrameDebugInfo], nextValue: () -> [ItemFrameDebugInfo]) {
-        value.append(contentsOf: nextValue())
-    }
-}
 
 struct HeightPreferenceKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
@@ -532,24 +463,6 @@ struct HeightPreferenceKey: PreferenceKey {
 }
 
 extension View {
-    /// 用 GeometryReader 测量 item 在 settingsGrid 坐标系下的 frame，用于排查布局被挤没/覆盖
-    func measureItemFrame(rowIndex: Int, itemID: String) -> some View {
-        background(
-            GeometryReader { proxy in
-                Color.clear.preference(
-                    key: ItemFramePreferenceKey.self,
-                    value: [
-                        ItemFrameDebugInfo(
-                            rowIndex: rowIndex,
-                            itemID: itemID,
-                            frame: proxy.frame(in: .named("settingsGrid"))
-                        ),
-                    ]
-                )
-            }
-        )
-    }
-
     /// 用 GeometryReader 包裹在 background 中测量视图真实高度，不影响布局
     func measureHeight(_ height: Binding<CGFloat>) -> some View {
         background(

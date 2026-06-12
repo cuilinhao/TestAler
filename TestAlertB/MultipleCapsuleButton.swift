@@ -60,30 +60,6 @@ struct MultipleCapsuleButton: View {
             morphingBody(slotWidth: slotWidth)
                 // 按 position 锚定：内容超宽时从锚点方向溢出（左→右展，右→左展，中→对称展）
                 .frame(width: slotWidth, height: buttonHeight, alignment: item.position.anchor)
-                .onAppear {
-                    logLayout(
-                        slotWidth: slotWidth,
-                        reason: "appear",
-                        expandedValue: isExpanded,
-                        selectedValue: selectedOption
-                    )
-                }
-                .onChange(of: isExpanded) { newValue in
-                    logLayout(
-                        slotWidth: slotWidth,
-                        reason: "isExpandedChanged=\(newValue)",
-                        expandedValue: newValue,
-                        selectedValue: selectedOption
-                    )
-                }
-                .onChange(of: selectedOption) { newValue in
-                    logLayout(
-                        slotWidth: slotWidth,
-                        reason: "selectedOptionChanged=\(newValue ?? "nil")",
-                        expandedValue: isExpanded,
-                        selectedValue: newValue
-                    )
-                }
         }
         .frame(height: buttonHeight)
         // 展开瞬间提升 Z 层级，保证覆盖在相邻按钮之上
@@ -116,29 +92,7 @@ struct MultipleCapsuleButton: View {
         // 形变宽度：收起 = slotWidth，展开 = expandedWidth
         .frame(width: morphFrameWidth, height: buttonHeight)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .onAppear {
-            logMorphingBody(
-                slotWidth: slotWidth,
-                expandedWidth: expandedWidth,
-                morphFrameWidth: morphFrameWidth,
-                scrollMounted: isExpanded,
-                reason: "morphingBodyAppear"
-            )
-        }
-        .onChange(of: isExpanded) { newValue in
-            logMorphingBody(
-                slotWidth: slotWidth,
-                expandedWidth: expandedWidth,
-                morphFrameWidth: newValue ? expandedWidth : slotWidth,
-                scrollMounted: newValue,
-                reason: "isExpandedChanged=\(newValue)"
-            )
-        }
         .onTapGesture {
-            TestLog.log(
-                "tap id=\(item.id), title=\(item.title), isExpandedBefore=\(isExpanded), selected=\(selectedOption ?? "nil")"
-            )
-            // 仅收起态点击触发 onTap；展开态由 option Button 接管点击
             if !isExpanded { onTap() }
         }
     }
@@ -182,10 +136,6 @@ struct MultipleCapsuleButton: View {
             // 滚动区域宽度锁死为 expandedWidth，不会随 option 数量撑宽外层
             .frame(width: expandedWidth, height: buttonHeight)
             .onAppear {
-                TestLog.log(
-                    "multipleScrollArea id=\(item.id) isExpanded=\(isExpanded) scrollFrameWidth=\(debugNumber(expandedWidth)) optionCellWidth=\(debugNumber(optionCellWidth)) optionCount=\(options.count)"
-                )
-                // 展开态首次挂载 ScrollView 时滚到当前选中项
                 scrollToSelected(using: proxy)
             }
             .onChange(of: isExpanded) { expanded in
@@ -249,49 +199,5 @@ struct MultipleCapsuleButton: View {
                 proxy.scrollTo(selected, anchor: .center)
             }
         }
-    }
-
-    private func logLayout(
-        slotWidth: CGFloat,
-        reason: String,
-        expandedValue: Bool,
-        selectedValue: String?
-    ) {
-        // 当前实际绘制宽度：收起 = slotWidth，展开 = rowWidth
-        let visibleWidth = expandedValue ? rowWidth(slotWidth: slotWidth) : slotWidth
-
-        TestLog.log(
-            "layout reason=\(reason), id=\(item.id), title=\(item.title), position=\(debugPositionDescription(item.position)), rowItemCount=\(rowItemCount), loggedExpanded=\(expandedValue), selected=\(selectedValue ?? "nil"), slotWidth=\(debugNumber(slotWidth)), visibleWidth=\(debugNumber(visibleWidth)), viewZIndex=\(expandedValue ? 10 : 0)"
-        )
-    }
-
-    /// 对比 slotWidth / expandedWidth / morphFrameWidth / scrollMounted，排查收起态 ScrollView 是否仍占整行宽
-    private func logMorphingBody(
-        slotWidth: CGFloat,
-        expandedWidth: CGFloat,
-        morphFrameWidth: CGFloat,
-        scrollMounted: Bool,
-        reason: String
-    ) {
-        let scrollFrameWidth = scrollMounted ? expandedWidth : 0
-        TestLog.log(
-            "multipleLayout reason=\(reason), id=\(item.id), isExpanded=\(isExpanded), slotWidth=\(debugNumber(slotWidth)), expandedWidth=\(debugNumber(expandedWidth)), morphFrameWidth=\(debugNumber(morphFrameWidth)), scrollMounted=\(scrollMounted), scrollFrameWidth=\(debugNumber(scrollFrameWidth)), scrollWiderThanSlot=\(scrollFrameWidth > slotWidth + 0.5)"
-        )
-    }
-
-    private func debugPositionDescription(_ position: ButtonPosition) -> String {
-        switch position {
-        case .left:
-            return "left"
-        case .center:
-            return "center"
-        case .right:
-            return "right"
-        }
-    }
-
-    private func debugNumber(_ value: CGFloat) -> String {
-        let rounded = (Double(value) * 10).rounded() / 10
-        return "\(rounded)"
     }
 }
