@@ -37,7 +37,8 @@ struct ContentView: View {
                         
                     }
                     Button() {
-                        debugPrint("++++ ")
+                        isSheetPresented = true
+                        debugPrint("++++ 展示录像设置页面 ")
                     } label: {
                         VStack(spacing: 10) {
                             Image(systemName: "fish.fill")
