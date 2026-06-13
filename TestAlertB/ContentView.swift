@@ -75,12 +75,13 @@ struct FeaturesToolbar: View {
                 .background(Capsule().fill(.secondary))
 
             Button(action: clickTime) {
-                Image(systemName: "fish.fill")
-                    .contentShape(.rect)
-                    .frame(width: 30, height: 30)
-                    .foregroundStyle(.white)
+                Text("Timer")
+//                Image(systemName: "fish.fill")
+//                    .contentShape(.rect)
+//                    .frame(width: 30, height: 30)
+//                    .foregroundStyle(.white)
             }
-            .background(Circle().fill(.secondary))
+//            .background(Circle().fill(.secondary))
             
             Spacer()
 
