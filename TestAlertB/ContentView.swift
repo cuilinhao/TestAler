@@ -3,37 +3,53 @@
 //  TestAlertB
 //
 //  主界面：模拟相机预览背景 + 按钮 A，点击弹出底部设置面板（弹框 B）
+//  主界面：绿色预览 + 顶部工具栏 + 参数面板（HEIF / Timer / Photo）
 //
 
 import SwiftUI
 
-
-//CameraV2UI
-
 struct ContentView: View {
+    /// HEIF 按钮展示文案（顶部胶囊标签）
     @State private var selectedCaptureFormat: CaptureFormat = .heif
-    @State private var isFormatPickerPresented = false
+    /// 单一枚举管理面板互斥，避免 video / timer 同时为 true
+    @State private var activeParameterPanel: ActiveParameterPanel?
+
+    // 截图 1：录像参数状态（面板关闭后仍保留）
+    @State private var colorSpace = "SDR"
+    @State private var codec = "ProRes Proxy"
+    @State private var resolution = "FHD"
+    @State private var frameRate = "24"
+
+    // 截图 2：间隔拍摄参数状态
+    @State private var captureInterval = "1s"
+    @State private var captureDurationSeconds = 0.0
+    @State private var timerResolution = "FHD"
+
+    // 拍照参数状态
+    @State private var photoFormat = "HEIF"
+    @State private var photoResolution = "48MP"
 
     var body: some View {
         VStack(spacing: 0) {
             FeaturesToolbar(
                 selectedFormat: selectedCaptureFormat,
-                onFormatTap: toggleFormatPicker
+                onFormatTap: { togglePanel(.video) },
+                onTimerTap: { togglePanel(.timer) },
+                onPhotoTap: { togglePanel(.photo) }
             )
-                .frame(maxWidth: .infinity)
-                .frame(height: 40)
+            .frame(maxWidth: .infinity)
+            .frame(height: 40)
 
             ZStack(alignment: .top) {
                 GreenPreviewPlaceholder()
                     .frame(maxWidth: .infinity)
                     .aspectRatio(3 / 4.0, contentMode: .fit)
                     .onTapGesture {
-                        hideFormatPicker()
+                        hideParameterPanel()
                     }
 
-                if isFormatPickerPresented {
-                    CaptureFormatPicker(selection: $selectedCaptureFormat)
-                        .padding(.horizontal, 16)
+                if let panel = activeParameterPanel {
+                    parameterPanel(for: panel)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         .zIndex(1)
                 }
@@ -47,18 +63,49 @@ struct ContentView: View {
         .environment(\.colorScheme, .dark)
     }
 
-     //MARK: - 点击选择格式
-    private func toggleFormatPicker() {
+    // MARK: - 面板切换
+
+    /// 再次点击同一按钮则收起；点击另一按钮则切换内容
+    private func togglePanel(_ panel: ActiveParameterPanel) {
         withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
-            isFormatPickerPresented.toggle()
+            if activeParameterPanel == panel {
+                activeParameterPanel = nil
+            } else {
+                activeParameterPanel = panel
+            }
         }
     }
 
-    private func hideFormatPicker() {
-        guard isFormatPickerPresented else { return }
+    private func hideParameterPanel() {
+        guard activeParameterPanel != nil else { return }
 
         withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
-            isFormatPickerPresented = false
+            activeParameterPanel = nil
+        }
+    }
+
+    /// 按激活类型渲染对应业务包装 View
+    @ViewBuilder
+    private func parameterPanel(for panel: ActiveParameterPanel) -> some View {
+        switch panel {
+        case .video:
+            VideoParameterPanel(
+                colorSpace: $colorSpace,
+                codec: $codec,
+                resolution: $resolution,
+                frameRate: $frameRate
+            )
+        case .timer:
+            TimerParameterPanel(
+                captureInterval: $captureInterval,
+                captureDurationSeconds: $captureDurationSeconds,
+                timerResolution: $timerResolution
+            )
+        case .photo:
+            PhotoParameterPanel(
+                photoFormat: $photoFormat,
+                photoResolution: $photoResolution
+            )
         }
     }
 }
@@ -68,21 +115,32 @@ struct ContentView: View {
 struct FeaturesToolbar: View {
     let selectedFormat: CaptureFormat
     let onFormatTap: () -> Void
+    let onTimerTap: () -> Void
+    let onPhotoTap: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
             CaptureParamButton(format: selectedFormat, action: onFormatTap)
                 .background(Capsule().fill(.secondary))
 
-            Button(action: clickTime) {
+            Button(action: onTimerTap) {
                 Text("Timer")
-//                Image(systemName: "fish.fill")
-//                    .contentShape(.rect)
-//                    .frame(width: 30, height: 30)
-//                    .foregroundStyle(.white)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(height: 30)
+                    .padding(.horizontal, 10)
             }
-//            .background(Circle().fill(.secondary))
-            
+            .background(Capsule().fill(.secondary))
+
+            Button(action: onPhotoTap) {
+                Text("Photo")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(height: 30)
+                    .padding(.horizontal, 10)
+            }
+            .background(Capsule().fill(.secondary))
+
             Spacer()
 
             Button(action: popCaptureModeSetting) {
@@ -106,20 +164,9 @@ struct FeaturesToolbar: View {
         .padding(.horizontal, 12)
     }
 
-    //MARK: - 点击倒计时
-   private func clickTime() {
-       debugPrint("++++ 点击倒计时")
-   }
-    
-     //MARK: - 点击
-    private func popCaptureModeSetting() {
-        
-    }
+    private func popCaptureModeSetting() {}
 
-     //MARK: - 点击设置
-    private func popSetting() {
-        
-    }
+    private func popSetting() {}
 }
 
 struct CaptureParamButton: View {
@@ -127,23 +174,17 @@ struct CaptureParamButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: doAction) {
-            HStack(spacing: 0) {
-                Text(format.rawValue)
-            }
-            .frame(height: 30)
-            .padding(.horizontal, 10)
+        Button(action: action) {
+            Text(format.rawValue)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(height: 30)
+                .padding(.horizontal, 10)
         }
-    }
-
-     //MARK: - 点击格式选择
-    private func doAction() {
-        debugPrint("++++ 点击格式选择 \(format.rawValue)")
-        action()
     }
 }
 
-// MARK: - 顶部格式选择
+// MARK: - 顶部格式标签
 
 enum CaptureFormat: String, CaseIterable, Identifiable {
     case heif = "HEIF"
@@ -152,59 +193,14 @@ enum CaptureFormat: String, CaseIterable, Identifiable {
     var id: Self { self }
 }
 
- //MARK: - 格式弹出框
-struct CaptureFormatPicker: View {
-    @Binding var selection: CaptureFormat
-    @Namespace private var animator
-
-    private let selectedBorderColor = Color(red: 230 / 255, green: 100 / 255, blue: 40 / 255)
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(CaptureFormat.allCases) { format in
-                Button {
-                    debugPrint("++++ 选择格式 \(format.rawValue)")
-                    selection = format
-                } label: {
-                    Text(format.rawValue)
-                        .font(.system(size: 15))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 32)
-                        .contentShape(Rectangle())
-                        .background {
-                            if selection == format {
-                                ZStack {
-                                    Capsule()
-                                        .fill(.black.opacity(0.3))
-                                    Capsule()
-                                        .stroke(selectedBorderColor, lineWidth: 1)
-                                }
-                                .matchedGeometryEffect(id: "capture-format-selection", in: animator)
-                            }
-                        }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(5)
-        .frame(maxWidth: .infinity)
-        .background(.regularMaterial)
-        .clipShape(Capsule())
-        .animation(.spring(response: 0.28, dampingFraction: 0.85), value: selection)
-        .environment(\.colorScheme, .dark)
-    }
-}
-
 // MARK: - 绿色预览占位
 
 struct GreenPreviewPlaceholder: View {
     var body: some View {
         Rectangle()
-            .fill(Color.green)
+            .fill(Color.secondary)
     }
 }
-
 
 // MARK: - 模拟相机预览背景
 
