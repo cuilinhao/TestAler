@@ -31,9 +31,9 @@ enum SettingItemKind {
 
 
 
-/// 主题色：选中高亮的荧光黄绿
+/// 主题色：选中高亮的荧光黄绿（#D4FF59）
 enum CapsuleTheme {
-    static let accent = Color(red: 0.84, green: 0.95, blue: 0.29)
+    static let accent = Color(red: 0.83, green: 1.0, blue: 0.35)
 }
 
 // MARK: - 形变胶囊按钮「只有3个数据」

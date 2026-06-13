@@ -11,6 +11,12 @@ struct CameraSettingsSheet: View {
     @Binding var isPresented: Bool
     var onCountdownFinished: () -> Void
 
+    /// 弹框内部页面：只切换内容区，不改变外层 Sheet 样式
+    private enum SheetPage {
+        case main
+        case watermark
+    }
+
     // 全局互斥：整个面板同一时间只允许一个按钮处于展开状态
     @State private var expandedItemID: String?
     /// 当前拍摄比例（比例 item 专用）
@@ -23,6 +29,10 @@ struct CameraSettingsSheet: View {
     @State private var countdownTask: Task<Void, Never>?
     @State private var optionSelections: [String: String] = [:]
     @State private var enabledToggles: Set<String> = []
+    /// 当前内容页：主设置页 / 水印页
+    @State private var currentPage: SheetPage = .main
+    /// 水印模板选中 index，与子页共享
+    @State private var selectedWatermarkIndex = 0
     // 通过 PreferenceKey 测得的网格内容真实高度
     @State private var contentHeight: CGFloat = 0
     // 下滑手势的实时位移
@@ -37,6 +47,8 @@ struct CameraSettingsSheet: View {
     private let visibleBackdropOpacity = 0.35
     // 入场保持轻快，避免点击按钮 A 后弹框响应显得拖沓。
     private let presentationAnimation = Animation.spring(response: 0.4, dampingFraction: 0.85)
+    // 内容区 Push/Pop 动画，外层 Sheet 不跟着变形。
+    private let pageAnimation = Animation.easeInOut(duration: 0.28)
     
     ///弹框dismiss的时间
     /// response 可以理解成弹簧反应时间，越大越慢
@@ -81,7 +93,8 @@ struct CameraSettingsSheet: View {
             // 边界阈值：屏幕高度的 60%
             let maxSheetHeight = screen.size.height * 0.6
             // 内容真实高度超过阈值 -> 锁定 60% 并启用内部滚动
-            let needsScroll = contentHeight + grabberZoneHeight > maxSheetHeight
+            let activeContentHeight = contentHeight
+            let needsScroll = activeContentHeight + grabberZoneHeight > maxSheetHeight
 
             ZStack(alignment: .bottom) {
                 if isRendered {
@@ -157,24 +170,18 @@ struct CameraSettingsSheet: View {
                 .frame(width: 40, height: 5)
                 .frame(height: grabberZoneHeight)
 
-            if needsScroll {
-                ScrollView(showsIndicators: false) { settingsGrid }
-            } else {
-                // 内容不超阈值：Sheet 高度 = 真实高度，禁止滚动
-                settingsGrid
-            }
+            sheetContent(maxHeight: maxHeight, needsScroll: needsScroll)
         }
         .frame(height: needsScroll ? maxHeight : nil)
         .frame(maxWidth: .infinity)
         .background(
-            // 深色毛玻璃 + 顶部 32 圆角，向下延伸覆盖底部安全区
+            // 外层 Sheet 始终保持图1的毛玻璃样式，子页只替换内部内容。
             UnevenRoundedRectangle(topLeadingRadius: 32, topTrailingRadius: 32, style: .continuous)
                 .fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .dark)
-                .ignoresSafeArea(edges: .bottom)
+            .environment(\.colorScheme, .dark)
+            .ignoresSafeArea(edges: .bottom)
         )
-        // 展开状态下点击面板空白处：立即收回展开的胶囊
-        // （按钮自身的点击优先于此手势，互不冲突）
+        // 展开状态下点击面板空白处：立即收回展开的胶囊（子页无展开态，不影响）
         .contentShape(Rectangle())
         .onTapGesture {
             TestLog.log("sheetPanel tap, expanded=\(expandedItemID ?? "nil")")
@@ -191,6 +198,46 @@ struct CameraSettingsSheet: View {
             TestLog.log(
                 "sheetPanel disappear, maxHeight=\(debugNumber(maxHeight)), needsScroll=\(needsScroll), contentHeight=\(debugNumber(contentHeight)), dragOffset=\(debugNumber(dragOffset)), isPresented=\(isPresented)"
             )
+        }
+    }
+
+    /// 内容区横向 Push/Pop；高度沿用主设置网格，避免进入水印页后 Sheet 变高/变矮。
+    private func sheetContent(maxHeight: CGFloat, needsScroll: Bool) -> some View {
+        let fixedHeight: CGFloat? = needsScroll
+            ? max(maxHeight - grabberZoneHeight, 0)
+            : (contentHeight > 0 ? contentHeight : nil)
+
+        return ZStack(alignment: .top) {
+             //MARK: -水印页面和列表页面分开展示在同一个主view上-
+            if currentPage == .main {
+                mainSettingsContent(needsScroll: needsScroll)
+                    .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .leading)))
+                    .zIndex(currentPage == .main ? 1 : 0)
+            }
+
+            if currentPage == .watermark {
+                WatermarkSettingsView(
+                    isEnabled: watermarkEnabledBinding,
+                    selectedIndex: $selectedWatermarkIndex,
+                    onBack: showMainSettings
+                )
+                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
+                .zIndex(currentPage == .watermark ? 1 : 0)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: fixedHeight, alignment: .top)
+        .clipped()
+        .animation(pageAnimation, value: currentPage)
+    }
+
+    /// @ViewBuilder 允许函数内多分支、if/else 返回不同 View
+    @ViewBuilder
+    private func mainSettingsContent(needsScroll: Bool) -> some View {
+        if needsScroll {
+            ScrollView(showsIndicators: false) { settingsGrid }
+        } else {
+            settingsGrid
         }
     }
 
@@ -344,6 +391,12 @@ struct CameraSettingsSheet: View {
             case .options:
                 expandedItemID = item.id
             case .toggle:
+                // 水印：Push 子页，不在主网格里直接 toggle
+                if item.itemID == .watermark {
+                    expandedItemID = nil
+                    currentPage = .watermark
+                    break
+                }
                 expandedItemID = nil
                 if enabledToggles.contains(item.id) {
                     enabledToggles.remove(item.id)
@@ -435,6 +488,27 @@ struct CameraSettingsSheet: View {
         onCountdownFinished()
     }
 
+    private func showMainSettings() {
+        withAnimation(pageAnimation) {
+            currentPage = .main
+        }
+    }
+
+    /// 水印开关与主网格 enabledToggles 同步
+    private var watermarkEnabledBinding: Binding<Bool> {
+        let id = CameraSettings.ItemID.watermark.rawValue
+        return Binding(
+            get: { enabledToggles.contains(id) },
+            set: { isOn in
+                if isOn {
+                    enabledToggles.insert(id)
+                } else {
+                    enabledToggles.remove(id)
+                }
+            }
+        )
+    }
+
     private func collapseExpanded() {
         guard expandedItemID != nil else { return }
         TestLog.log("collapseExpanded expandedBefore=\(expandedItemID ?? "nil")")
@@ -465,6 +539,7 @@ struct CameraSettingsSheet: View {
 
         if !isRendered {
             isRendered = true
+            currentPage = .main
             sheetOffset = screenHeight
             backdropOpacity = 0
         }
@@ -509,6 +584,8 @@ struct CameraSettingsSheet: View {
             sheetOffset = 0
             backdropOpacity = 0
             dragOffset = 0
+            currentPage = .main
+            selectedWatermarkIndex = 0
 
             TestLog.log(
                 "+++ dismiss animation cleanup, isRendered=\(isRendered), sheetOffset=\(debugNumber(sheetOffset)), backdropOpacity=\(backdropOpacity), dragOffset=\(debugNumber(dragOffset))"
