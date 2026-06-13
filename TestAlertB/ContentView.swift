@@ -7,71 +7,15 @@
 
 import SwiftUI
 
+
+//CameraV2UI
+
 struct ContentView: View {
-    @State private var isSheetPresented = false
-    @State private var sheetMode: CameraSettings.SheetMode = .photo
-
     var body: some View {
-        ZStack {
-            // 模拟相机取景画面（渐变天空 + 雪山剪影），让毛玻璃面板能透出底色
-            CameraPreviewPlaceholder()
-
-            // 按钮 A：点击弹出弹框 B
-            VStack {
-                Spacer()
-                HStack(spacing: 25) {
-                    Button() {
-                        sheetMode = .photo
-                        isSheetPresented = true
-                    } label: {
-                        VStack(spacing: 10) {
-                            Image(systemName: "gearshape.fill")
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                                .padding(18)
-                                .background(.ultraThinMaterial, in: Circle())
-                                .environment(\.colorScheme, .dark)
-                            
-                            Text("拍照设置页")
-                                .font(.body)
-                                .foregroundStyle(.green)
-                        }
-                        
-                    }
-                    Button() {
-                        sheetMode = .video
-                        isSheetPresented = true
-                        debugPrint("++++ 展示录像设置页面 ")
-                    } label: {
-                        VStack(spacing: 10) {
-                            Image(systemName: "fish.fill")
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                                .padding(18)
-                                .background(.ultraThinMaterial, in: Circle())
-                                .environment(\.colorScheme, .dark)
-                            Text("录像设置页")
-                                .font(.body)
-                                .foregroundStyle(.green)
-                        }
-                        
-                    }
-
-                }
-                .padding(.bottom, 440)
-            }
-        }
-        // 弹框 B 作为全屏覆盖层呈现，便于实现自定义形变交互
-        .overlay {
-            CameraSettingsSheet(isPresented: $isSheetPresented, mode: sheetMode) {
-                // 倒计时 3→2→1 走完后回调；面板可已收起，Task 不随 dismiss 中断
-                // TODO: 触发相机拍照
-                TestLog.log("倒计时结束开始拍照")
-            }
-        }
-        .preferredColorScheme(.dark)
+        Text("123")
     }
 }
+
 
 // MARK: - 模拟相机预览背景
 
