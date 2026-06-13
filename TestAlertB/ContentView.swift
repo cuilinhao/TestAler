@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var isSheetPresented = false
+    @State private var sheetMode: CameraSettings.SheetMode = .photo
 
     var body: some View {
         ZStack {
@@ -20,6 +21,7 @@ struct ContentView: View {
                 Spacer()
                 HStack(spacing: 25) {
                     Button() {
+                        sheetMode = .photo
                         isSheetPresented = true
                     } label: {
                         VStack(spacing: 10) {
@@ -37,6 +39,7 @@ struct ContentView: View {
                         
                     }
                     Button() {
+                        sheetMode = .video
                         isSheetPresented = true
                         debugPrint("++++ 展示录像设置页面 ")
                     } label: {
@@ -60,7 +63,7 @@ struct ContentView: View {
         }
         // 弹框 B 作为全屏覆盖层呈现，便于实现自定义形变交互
         .overlay {
-            CameraSettingsSheet(isPresented: $isSheetPresented) {
+            CameraSettingsSheet(isPresented: $isSheetPresented, mode: sheetMode) {
                 // 倒计时 3→2→1 走完后回调；面板可已收起，Task 不随 dismiss 中断
                 // TODO: 触发相机拍照
                 TestLog.log("倒计时结束开始拍照")

@@ -27,6 +27,12 @@ struct CapsuleCollapsedContentView: View {
                     value: selectedOption ?? CameraSettings.AspectRatio.defaultValue.rawValue,
                     title: title
                 )
+            case .optionalValueBadge(let offSystemName, let title):
+                OptionalValueBadgeCollapsedView(
+                    value: selectedOption,
+                    offSystemName: offSystemName,
+                    title: title
+                )
             case .countdownIndicator(let title):
                 CountdownCollapsedView(
                     remainingSeconds: countdownRemainingSeconds,
@@ -58,6 +64,8 @@ struct ValueBadgeCollapsedView: View {
             Text(value)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
                 .background {
@@ -70,9 +78,41 @@ struct ValueBadgeCollapsedView: View {
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(.white)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .padding(.horizontal, 4)
     }
+}
+
+// MARK: - 可选值：未选择显示 icon，选择后显示值
+
+/// Log还原 / 防抖：没选过时保持 icon+标题，选过后才展示当前选中值
+struct OptionalValueBadgeCollapsedView: View {
+    ///胶囊中选中的值
+    let value: String?
+    
+    let offSystemName: String
+    /// 初始的title
+    let title: String
+
+    var body: some View {
+        if let value, !value.isEmpty {
+            
+            ValueBadgeCollapsedView(value: value, title: title)
+                .onAppear {
+                    debugPrint("++++logo value \(value), title:\(title)")
+                }
+            
+        } else {
+            ToggleIconCollapsedView(
+                offSystemName: offSystemName,
+                onSystemName: offSystemName,
+                title: title,
+                isOn: false
+            )
+        }
+    }
+        
 }
 
 // MARK: - 倒计时：左侧动态指示 + 右侧标题

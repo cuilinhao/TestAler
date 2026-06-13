@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CameraSettingsSheet: View {
     @Binding var isPresented: Bool
+    var mode: CameraSettings.SheetMode = .photo
     var onCountdownFinished: () -> Void
 
     /// 弹框内部页面：只切换内容区，不改变外层 Sheet 样式
@@ -19,16 +20,20 @@ struct CameraSettingsSheet: View {
 
     // 全局互斥：整个面板同一时间只允许一个按钮处于展开状态
     @State private var expandedItemID: String?
-    /// 当前拍摄比例（比例 item 专用）
-    @State private var aspectRatio: CameraSettings.AspectRatio = .ratio4x3
+    /// 比例按拍照/录像分别保存，避免两个入口互相串状态
+    @State private var aspectRatios: [CameraSettings.SheetMode: CameraSettings.AspectRatio] = [
+        .photo: .ratio4x3,
+        .video: .ratio4x3,
+    ]
     /// 倒计时选项枚举：关闭 / 3秒 / 10秒；运行结束后会重置为 .off
     @State private var countdown: CameraSettings.Countdown = .off
     /// 倒计时进行中剩余秒数；nil 表示未在倒计时（收起态显示斜杠 timer）
     @State private var countdownRemainingSeconds: Int?
     /// 每秒递减的异步 Task；取消 sheet 或重选选项时需 cancel
     @State private var countdownTask: Task<Void, Never>?
-    @State private var optionSelections: [String: String] = [:]
-    @State private var enabledToggles: Set<String> = []
+    /// 选项/开关状态按模式隔离；相同 item id 在拍照和录像页可以有不同状态
+    @State private var optionSelectionsByMode: [CameraSettings.SheetMode: [String: String]] = [:]
+    @State private var enabledTogglesByMode: [CameraSettings.SheetMode: Set<String>] = [:]
     /// 当前内容页：主设置页 / 水印页
     @State private var currentPage: SheetPage = .main
     /// 水印模板选中 index，与子页共享
@@ -61,8 +66,18 @@ struct CameraSettingsSheet: View {
         countdownRemainingSeconds != nil
     }
 
-    /// 多行不等列布局：2 / 3 / 3 / 2，每行内部平分宽度
-    private static let rows: [[SettingItem]] = [
+    /// 当前模式的数据源：同一个 Sheet 复用布局和交互，只替换 item rows
+    private var rows: [[SettingItem]] {
+        switch mode {
+        case .photo:
+            return Self.photoRows
+        case .video:
+            return Self.videoRows
+        }
+    }
+
+    /// 拍照设置：多行不等列布局，每行内部平分宽度
+    private static let photoRows: [[SettingItem]] = [
         [
             .init(id: CameraSettings.ItemID.ratio.rawValue, kind: .options(CameraSettings.AspectRatio.allCases.map(\.rawValue)), position: .left),
             .init(id: CameraSettings.ItemID.timer.rawValue, kind: .options(CameraSettings.Countdown.allCases.map(\.rawValue)), position: .right),
@@ -85,6 +100,28 @@ struct CameraSettingsSheet: View {
         ],
         [
             .init(id: CameraSettings.ItemID.voice.rawValue, kind: .options(["极限", "自动", "关闭", "标准", "运动"]), position: .left),
+        ],
+    ]
+
+    /// 录像设置：按截图顺序组织 rows，Log还原/防抖为选项型
+    private static let videoRows: [[SettingItem]] = [
+        [
+            .init(id: CameraSettings.ItemID.ratio.rawValue, kind: .options(CameraSettings.AspectRatio.allCases.map(\.rawValue)), position: .left),
+            .init(id: CameraSettings.ItemID.level.rawValue, kind: .toggle, position: .right),
+        ],
+        [
+            .init(id: CameraSettings.ItemID.grid.rawValue, kind: .toggle, position: .left),
+            .init(id: CameraSettings.ItemID.histogram.rawValue, kind: .toggle, position: .center),
+            .init(id: CameraSettings.ItemID.logRestore.rawValue, kind: .options(["仅预览", "烧录至成品"]), position: .right),
+        ],
+        [
+            .init(id: CameraSettings.ItemID.voice.rawValue, kind: .toggle, position: .left),
+            .init(id: CameraSettings.ItemID.focusAssist.rawValue, kind: .toggle, position: .center),
+            .init(id: CameraSettings.ItemID.stabilization.rawValue, kind: .options(["极限", "自动", "关闭", "标准", "运动"]), position: .right),
+        ],
+        [
+            .init(id: CameraSettings.ItemID.telephoto.rawValue, kind: .toggle, position: .left),
+            .init(id: CameraSettings.ItemID.diving.rawValue, kind: .toggle, position: .right),
         ],
     ]
 
@@ -244,7 +281,7 @@ struct CameraSettingsSheet: View {
      //MARK: - 将item数据放在UI上
     private var settingsGrid: some View {
         VStack(spacing: 12) {
-            ForEach(Array(Self.rows.enumerated()), id: \.offset) { rowIndex, row in
+            ForEach(Array(rows.enumerated()), id: \.offset) { rowIndex, row in
                 let expandedIDInRow = row.first { $0.id == expandedItemID }?.id
 
                 HStack(spacing: 12) {
@@ -289,7 +326,7 @@ struct CameraSettingsSheet: View {
                     item: item,
                     rowItemCount: rowItemCount,
                     isExpanded: expandedItemID == item.id,
-                    isOn: enabledToggles.contains(item.id),
+                    isOn: currentEnabledToggles.contains(item.id),
                     selectedOption: selectedOption(for: item),
                     countdownRemainingSeconds: countdownRemainingSeconds(for: item),
                     isTapEnabled: isItemTapEnabled,
@@ -306,7 +343,7 @@ struct CameraSettingsSheet: View {
                     item: item,
                     rowItemCount: rowItemCount,
                     isExpanded: expandedItemID == item.id,
-                    isOn: enabledToggles.contains(item.id),
+                    isOn: currentEnabledToggles.contains(item.id),
                     selectedOption: selectedOption(for: item),
                     countdownRemainingSeconds: countdownRemainingSeconds(for: item),
                     isTapEnabled: isItemTapEnabled,
@@ -364,15 +401,57 @@ struct CameraSettingsSheet: View {
         item.itemID != .timer || !isCountdownRunning
     }
 
+    private var currentAspectRatio: CameraSettings.AspectRatio {
+        aspectRatios[mode] ?? CameraSettings.AspectRatio.defaultValue
+    }
+
+    private var currentOptionSelections: [String: String] {
+        optionSelectionsByMode[mode] ?? [:]
+    }
+
+    private var currentEnabledToggles: Set<String> {
+        enabledTogglesByMode[mode] ?? []
+    }
+
     private func selectedOption(for item: SettingItem) -> String? {
         switch item.itemID {
         case .ratio:
-            return aspectRatio.rawValue
+            return currentAspectRatio.rawValue
         case .timer:
             return countdown.rawValue
         default:
-            return optionSelections[item.id]
+            return currentOptionSelections[item.id]
         }
+    }
+
+    private func setCurrentAspectRatio(_ value: CameraSettings.AspectRatio) {
+        aspectRatios[mode] = value
+    }
+
+    private func setOptionSelection(_ option: String, for item: SettingItem) {
+        var selections = currentOptionSelections
+        selections[item.id] = option
+        optionSelectionsByMode[mode] = selections
+    }
+
+    private func toggleCurrentModeItem(_ id: String) {
+        var toggles = currentEnabledToggles
+        if toggles.contains(id) {
+            toggles.remove(id)
+        } else {
+            toggles.insert(id)
+        }
+        enabledTogglesByMode[mode] = toggles
+    }
+
+    private func setCurrentModeToggle(_ id: String, isOn: Bool) {
+        var toggles = currentEnabledToggles
+        if isOn {
+            toggles.insert(id)
+        } else {
+            toggles.remove(id)
+        }
+        enabledTogglesByMode[mode] = toggles
     }
 
      //MARK: - 点击item 后走这里 -
@@ -398,11 +477,7 @@ struct CameraSettingsSheet: View {
                     break
                 }
                 expandedItemID = nil
-                if enabledToggles.contains(item.id) {
-                    enabledToggles.remove(item.id)
-                } else {
-                    enabledToggles.insert(item.id)
-                }
+                toggleCurrentModeItem(item.id)
             }
         }
 
@@ -435,10 +510,10 @@ struct CameraSettingsSheet: View {
         switch item.itemID {
         case .ratio:
             if let value = CameraSettings.AspectRatio(rawValue: option) {
-                aspectRatio = value
+                setCurrentAspectRatio(value)
             }
         default:
-            optionSelections[item.id] = option
+            setOptionSelection(option, for: item)
         }
 
         collapseAfterSelection(item: item, option: option)
@@ -494,17 +569,13 @@ struct CameraSettingsSheet: View {
         }
     }
 
-    /// 水印开关与主网格 enabledToggles 同步
+    /// 水印开关与当前模式的主网格开关状态同步
     private var watermarkEnabledBinding: Binding<Bool> {
         let id = CameraSettings.ItemID.watermark.rawValue
         return Binding(
-            get: { enabledToggles.contains(id) },
+            get: { currentEnabledToggles.contains(id) },
             set: { isOn in
-                if isOn {
-                    enabledToggles.insert(id)
-                } else {
-                    enabledToggles.remove(id)
-                }
+                setCurrentModeToggle(id, isOn: isOn)
             }
         )
     }
@@ -540,6 +611,7 @@ struct CameraSettingsSheet: View {
         if !isRendered {
             isRendered = true
             currentPage = .main
+            contentHeight = 0
             sheetOffset = screenHeight
             backdropOpacity = 0
         }
@@ -614,7 +686,7 @@ struct CameraSettingsSheet: View {
     }
 
     private func debugRowDescription(containing item: SettingItem) -> String {
-        guard let row = Self.rows.first(where: { row in
+        guard let row = rows.first(where: { row in
             row.contains { $0.id == item.id }
         }) else {
             return "unknown"
@@ -628,8 +700,9 @@ struct CameraSettingsSheet: View {
     }
 
     private func debugToggleDescription() -> String {
-        guard !enabledToggles.isEmpty else { return "[]" }
-        return "[\(enabledToggles.sorted().joined(separator: ","))]"
+        let toggles = currentEnabledToggles
+        guard !toggles.isEmpty else { return "[]" }
+        return "[\(toggles.sorted().joined(separator: ","))]"
     }
 
     private func debugSize(_ size: CGSize) -> String {

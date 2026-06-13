@@ -12,6 +12,12 @@ enum CameraSettings {}
 
 extension CameraSettings {
 
+    /// 首页进入设置面板的业务模式：复用同一个 Sheet，只替换内部 rows 数据
+    enum SheetMode: Hashable {
+        case photo
+        case video
+    }
+
     /// 网格里每个 setting 的稳定标识，与 SettingItem.id 一一对应
     enum ItemID: String, CaseIterable {
         case ratio
@@ -25,12 +31,17 @@ extension CameraSettings {
         case telephoto
         case diving
         case voice
+        case logRestore
+        case stabilization
     }
 
     /// 收起态 UI 类型：CapsuleCollapsedContentView 按此路由到不同子 View
     enum CollapsedStyle: Equatable {
         /// 比例：左侧值 badge + 右侧固定标题
         case valueBadge(title: String)
+        /// 可选值：未选择时 icon + 标题；选择后 value badge + 标题
+        /// 比如 logo 防抖
+        case optionalValueBadge(offSystemName: String, title: String)
         /// 倒计时：左侧动态指示（斜杠 timer / 圆 badge 秒数）+ 右侧固定标题
         case countdownIndicator(title: String)
         /// 开关 / 功能项：icon + 标题；ON/OFF 可配置不同 SF Symbol（如 LIVE）
@@ -114,7 +125,9 @@ extension CameraSettings.ItemID {
         case .watermark: return "水印"
         case .telephoto: return "长焦模式"
         case .diving: return "潜水模式"
-        case .voice: return "音频"
+        case .voice: return "音频表"
+        case .logRestore: return "Log还原"
+        case .stabilization: return "防抖"
         }
     }
 
@@ -144,6 +157,10 @@ extension CameraSettings.ItemID {
             return .toggleIcon(offSystemName: "drop", onSystemName: "drop", title: displayTitle)
         case .voice:
             return .toggleIcon(offSystemName: "waveform", onSystemName: "waveform", title: displayTitle)
+        case .logRestore:
+            return .optionalValueBadge(offSystemName: "film", title: displayTitle)
+        case .stabilization:
+            return .optionalValueBadge(offSystemName: "viewfinder", title: displayTitle)
         }
     }
 }
