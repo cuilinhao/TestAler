@@ -18,17 +18,43 @@ struct ContentView: View {
             // 按钮 A：点击弹出弹框 B
             VStack {
                 Spacer()
-                Button {
-                    isSheetPresented = true
-                } label: {
-                    Image(systemName: "gearshape.fill")
-                        .font(.title2)
-                        .foregroundStyle(.white)
-                        .padding(18)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .environment(\.colorScheme, .dark)
+                HStack(spacing: 25) {
+                    Button() {
+                        isSheetPresented = true
+                    } label: {
+                        VStack(spacing: 10) {
+                            Image(systemName: "gearshape.fill")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                                .padding(18)
+                                .background(.ultraThinMaterial, in: Circle())
+                                .environment(\.colorScheme, .dark)
+                            
+                            Text("拍照设置页")
+                                .font(.body)
+                                .foregroundStyle(.green)
+                        }
+                        
+                    }
+                    Button() {
+                        debugPrint("++++ ")
+                    } label: {
+                        VStack(spacing: 10) {
+                            Image(systemName: "fish.fill")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                                .padding(18)
+                                .background(.ultraThinMaterial, in: Circle())
+                                .environment(\.colorScheme, .dark)
+                            Text("录像设置页")
+                                .font(.body)
+                                .foregroundStyle(.green)
+                        }
+                        
+                    }
+
                 }
-                .padding(.bottom, 40)
+                .padding(.bottom, 440)
             }
         }
         // 弹框 B 作为全屏覆盖层呈现，便于实现自定义形变交互
