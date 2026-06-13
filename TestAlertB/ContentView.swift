@@ -11,16 +11,34 @@ import SwiftUI
 //CameraV2UI
 
 struct ContentView: View {
+    @State private var selectedCaptureFormat: CaptureFormat = .heif
+    @State private var isFormatPickerPresented = false
+
     var body: some View {
         VStack(spacing: 0) {
-            FeaturesToolbar()
+            FeaturesToolbar(
+                selectedFormat: selectedCaptureFormat,
+                onFormatTap: toggleFormatPicker
+            )
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
 
-            GreenPreviewPlaceholder()
-                .frame(maxWidth: .infinity)
-                .aspectRatio(3 / 4.0, contentMode: .fit)
-                .layoutPriority(100)
+            ZStack(alignment: .top) {
+                GreenPreviewPlaceholder()
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(3 / 4.0, contentMode: .fit)
+                    .onTapGesture {
+                        hideFormatPicker()
+                    }
+
+                if isFormatPickerPresented {
+                    CaptureFormatPicker(selection: $selectedCaptureFormat)
+                        .padding(.horizontal, 16)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .zIndex(1)
+                }
+            }
+            .layoutPriority(100)
 
             Spacer(minLength: 0)
         }
@@ -28,16 +46,42 @@ struct ContentView: View {
         .background(Color.black.ignoresSafeArea())
         .environment(\.colorScheme, .dark)
     }
+
+     //MARK: - 点击选择格式
+    private func toggleFormatPicker() {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+            isFormatPickerPresented.toggle()
+        }
+    }
+
+    private func hideFormatPicker() {
+        guard isFormatPickerPresented else { return }
+
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+            isFormatPickerPresented = false
+        }
+    }
 }
 
 // MARK: - 顶部工具栏
 
 struct FeaturesToolbar: View {
+    let selectedFormat: CaptureFormat
+    let onFormatTap: () -> Void
+
     var body: some View {
         HStack(spacing: 12) {
-            CaptureParamButton()
+            CaptureParamButton(format: selectedFormat, action: onFormatTap)
                 .background(Capsule().fill(.secondary))
 
+            Button(action: clickTime) {
+                Image(systemName: "fish.fill")
+                    .contentShape(.rect)
+                    .frame(width: 30, height: 30)
+                    .foregroundStyle(.white)
+            }
+            .background(Circle().fill(.secondary))
+            
             Spacer()
 
             Button(action: popCaptureModeSetting) {
@@ -61,6 +105,11 @@ struct FeaturesToolbar: View {
         .padding(.horizontal, 12)
     }
 
+    //MARK: - 点击倒计时
+   private func clickTime() {
+       debugPrint("++++ 点击倒计时")
+   }
+    
      //MARK: - 点击
     private func popCaptureModeSetting() {
         
@@ -73,10 +122,13 @@ struct FeaturesToolbar: View {
 }
 
 struct CaptureParamButton: View {
+    let format: CaptureFormat
+    let action: () -> Void
+
     var body: some View {
         Button(action: doAction) {
             HStack(spacing: 0) {
-                Text("HEIF")
+                Text(format.rawValue)
             }
             .frame(height: 30)
             .padding(.horizontal, 10)
@@ -85,7 +137,61 @@ struct CaptureParamButton: View {
 
      //MARK: - 点击格式选择
     private func doAction() {
-        debugPrint("++++ 点击格式选择 HEIF")
+        debugPrint("++++ 点击格式选择 \(format.rawValue)")
+        action()
+    }
+}
+
+// MARK: - 顶部格式选择
+
+enum CaptureFormat: String, CaseIterable, Identifiable {
+    case heif = "HEIF"
+    case jpeg = "JPEG"
+
+    var id: Self { self }
+}
+
+ //MARK: - 格式弹出框
+struct CaptureFormatPicker: View {
+    @Binding var selection: CaptureFormat
+    @Namespace private var animator
+
+    private let selectedBorderColor = Color(red: 230 / 255, green: 100 / 255, blue: 40 / 255)
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(CaptureFormat.allCases) { format in
+                Button {
+                    debugPrint("++++ 选择格式 \(format.rawValue)")
+                    selection = format
+                } label: {
+                    Text(format.rawValue)
+                        .font(.system(size: 15))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 32)
+                        .contentShape(Rectangle())
+                        .background {
+                            if selection == format {
+                                ZStack {
+                                    Capsule()
+                                        .fill(.black.opacity(0.3))
+                                    Capsule()
+                                        .stroke(selectedBorderColor, lineWidth: 1)
+                                }
+                                .matchedGeometryEffect(id: "capture-format-selection", in: animator)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(5)
+        .frame(maxWidth: .infinity)
+        .background(.regularMaterial)
+        .clipShape(Capsule())
+        .animation(.spring(response: 0.28, dampingFraction: 0.85), value: selection)
+        .environment(\.colorScheme, .dark)
     }
 }
 
