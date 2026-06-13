@@ -246,8 +246,12 @@ struct CameraSettingsSheet: View {
                     selectedOption: selectedOption(for: item),
                     countdownRemainingSeconds: countdownRemainingSeconds(for: item),
                     isTapEnabled: isItemTapEnabled,
-                    onTap: { handleTap(item) },
-                    onSelect: { option in select(option, for: item) }
+                    onTap: {
+                        handleTap(item)
+                    },
+                    onSelect: {
+                        option in select(option, for: item)
+                    }
                 )
             } else {
                 // toggle 或 options ≤ 3：使用原形变分段胶囊（如「比例」「倒计时」）
@@ -259,8 +263,12 @@ struct CameraSettingsSheet: View {
                     selectedOption: selectedOption(for: item),
                     countdownRemainingSeconds: countdownRemainingSeconds(for: item),
                     isTapEnabled: isItemTapEnabled,
-                    onTap: { handleTap(item) },
-                    onSelect: { option in select(option, for: item) }
+                    onTap: {
+                        handleTap(item)
+                    },
+                    onSelect: {
+                        option in select(option, for: item)
+                    }
                 )
             }
         }
@@ -320,14 +328,15 @@ struct CameraSettingsSheet: View {
         }
     }
 
+     //MARK: - 点击item 后走这里 -
     private func handleTap(_ item: SettingItem) {
         if item.itemID == .timer, isCountdownRunning {
-            TestLog.log("handleTap blocked, countdown running")
+            TestLog.log("---handleTap blocked, countdown running")
             return
         }
 
         TestLog.log(
-            "handleTap id=\(item.id), title=\(item.title), kind=\(debugKindDescription(item.kind)), position=\(debugPositionDescription(item.position)), expandedBefore=\(expandedItemID ?? "nil"), rowOrder=\(debugRowDescription(containing: item)), selected=\(selectedOption(for: item) ?? "nil"), toggles=\(debugToggleDescription())"
+            "handleTap id--- =\(item.id), title=\(item.title), kind=\(debugKindDescription(item.kind)), position=\(debugPositionDescription(item.position)), expandedBefore=\(expandedItemID ?? "nil"), rowOrder=\(debugRowDescription(containing: item)), selected=\(selectedOption(for: item) ?? "nil"), toggles=\(debugToggleDescription())"
         )
 
         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
@@ -348,7 +357,8 @@ struct CameraSettingsSheet: View {
             "handleTap scheduled id=\(item.id), expandedAfter=\(expandedItemID ?? "nil"), toggles=\(debugToggleDescription())"
         )
     }
-
+    
+     //MARK: - 展开的胶囊， 选择某一个数据后触发
     private func select(_ option: String, for item: SettingItem) {
         TestLog.log(
             "select option=\(option), id=\(item.id), previous=\(selectedOption(for: item) ?? "nil"), expandedBefore=\(expandedItemID ?? "nil")"
