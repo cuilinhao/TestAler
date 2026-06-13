@@ -12,7 +12,89 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        Text("123")
+        VStack(spacing: 0) {
+            FeaturesToolbar()
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+
+            GreenPreviewPlaceholder()
+                .frame(maxWidth: .infinity)
+                .aspectRatio(3 / 4.0, contentMode: .fit)
+                .layoutPriority(100)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.black.ignoresSafeArea())
+        .environment(\.colorScheme, .dark)
+    }
+}
+
+// MARK: - 顶部工具栏
+
+struct FeaturesToolbar: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            CaptureParamButton()
+                .background(Capsule().fill(.secondary))
+
+            Spacer()
+
+            Button(action: popCaptureModeSetting) {
+                Image(systemName: "ellipsis.bubble")
+                    .contentShape(.rect)
+                    .frame(width: 30, height: 30)
+                    .foregroundStyle(.white)
+            }
+            .background(Circle().fill(.secondary))
+
+            Button(action: popSetting) {
+                Image(systemName: "gearshape")
+                    .contentShape(.rect)
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .contentShape(.rect)
+            }
+            .background(Circle().fill(.secondary))
+        }
+        .padding(.bottom, 8)
+        .padding(.horizontal, 12)
+    }
+
+     //MARK: - 点击
+    private func popCaptureModeSetting() {
+        
+    }
+
+     //MARK: - 点击设置
+    private func popSetting() {
+        
+    }
+}
+
+struct CaptureParamButton: View {
+    var body: some View {
+        Button(action: doAction) {
+            HStack(spacing: 0) {
+                Text("HEIF")
+            }
+            .frame(height: 30)
+            .padding(.horizontal, 10)
+        }
+    }
+
+     //MARK: - 点击格式选择
+    private func doAction() {
+        debugPrint("++++ 点击格式选择 HEIF")
+    }
+}
+
+// MARK: - 绿色预览占位
+
+struct GreenPreviewPlaceholder: View {
+    var body: some View {
+        Rectangle()
+            .fill(Color.green)
     }
 }
 
