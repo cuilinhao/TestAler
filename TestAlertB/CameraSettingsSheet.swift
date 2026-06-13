@@ -175,7 +175,7 @@ struct CameraSettingsSheet: View {
         .frame(height: needsScroll ? maxHeight : nil)
         .frame(maxWidth: .infinity)
         .background(
-            // 外层 Sheet 始终保持图1的毛玻璃样式，子页只替换内部内容。
+            // 外层 Sheet 始终保持毛玻璃样式，子页只替换内部内容。
             UnevenRoundedRectangle(topLeadingRadius: 32, topTrailingRadius: 32, style: .continuous)
                 .fill(.ultraThinMaterial)
             .environment(\.colorScheme, .dark)

@@ -33,7 +33,7 @@ struct WatermarkSettingsView: View {
         return min(maxCardWidth, max(230, availableWidth))
     }
 
-    // 占位模板：第二张用不同 icon，与截图一致
+    // 占位模板
     private let templates: [WatermarkTemplate] = [
         .init(id: 0, brandIcon: "applelogo", deviceName: "iPhone 17 Pro Max", cameraInfo: "50mm f/1.78 1/80s ISO 640"),
         .init(id: 1, brandIcon: "sun.max.fill", deviceName: "iPhone 17 Pro Max", cameraInfo: "50mm f/1.78 1/80s ISO 640"),

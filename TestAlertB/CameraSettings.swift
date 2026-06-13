@@ -60,7 +60,7 @@ extension CameraSettings {
 
         var id: String { rawValue }
 
-        /// 默认初始态：关闭（图2 斜杠 timer）
+        /// 默认初始态：关闭（斜杠 timer）
         static var defaultValue: Self { .off }
 
         /// 选中 3秒/10秒 时实际倒计时的秒数；关闭为 nil

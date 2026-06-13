@@ -108,7 +108,7 @@ struct CountdownCollapsedView: View {
     private var leadingIndicator: some View {
         switch leading {
         case .slashTimer:
-            // 图2 默认态：timer + 斜杠
+            //  默认态：timer + 斜杠
             Image(systemName: "timer")
                 .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(.white)
