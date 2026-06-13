@@ -86,23 +86,19 @@ struct ValueBadgeCollapsedView: View {
 
 // MARK: - 可选值：未选择显示 icon，选择后显示值
 
-/// Log还原 / 防抖：没选过时保持 icon+标题，选过后才展示当前选中值
+/// Log还原 / 防抖：没选过时保持 icon+标题，选过后整颗胶囊展示 icon+选中值
 struct OptionalValueBadgeCollapsedView: View {
-    ///胶囊中选中的值
+    /// 胶囊中选中的值；nil 表示还没选过
     let value: String?
-    
     let offSystemName: String
-    /// 初始的title
+    /// 初始标题，未选择时展示
     let title: String
+
+    private let selectedCornerRadius: CGFloat = 20
 
     var body: some View {
         if let value, !value.isEmpty {
-            
-            ValueBadgeCollapsedView(value: value, title: title)
-                .onAppear {
-                    debugPrint("++++logo value \(value), title:\(title)")
-                }
-            
+            selectedValueCapsule(value)
         } else {
             ToggleIconCollapsedView(
                 offSystemName: offSystemName,
@@ -112,7 +108,26 @@ struct OptionalValueBadgeCollapsedView: View {
             )
         }
     }
-        
+
+    /// 选择后覆盖父级深色底，显示黄底 icon + 选中值
+    private func selectedValueCapsule(_ value: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: offSystemName)
+                .font(.system(size: 18, weight: .medium))
+
+            Text(value)
+                .font(.system(size: 15, weight: .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .foregroundStyle(.black)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            RoundedRectangle(cornerRadius: selectedCornerRadius, style: .continuous)
+                .fill(CapsuleTheme.accent)
+        }
+        .padding(.horizontal, 0)
+    }
 }
 
 // MARK: - 倒计时：左侧动态指示 + 右侧标题
