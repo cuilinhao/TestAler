@@ -26,84 +26,125 @@ struct ContentView: View {
             // 按钮 A：点击弹出弹框 B
             VStack {
                 Spacer()
-                HStack(spacing: 25) {
-                    Button() {
-                        sheetMode = .photo
-                        isSheetPresented = true
-                    } label: {
-                        VStack(spacing: 10) {
-                            Image(systemName: "gearshape.fill")
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                                .padding(18)
-                                .background(.ultraThinMaterial, in: Circle())
-                                .environment(\.colorScheme, .dark)
+                VStack(spacing: 30) {
+                    HStack(spacing: 25) {
+                        Button() {
+                            sheetMode = .photo
+                            isSheetPresented = true
+                        } label: {
+                            VStack(spacing: 10) {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(.white)
+                                    .padding(18)
+                                    .background(.ultraThinMaterial, in: Circle())
+                                    .environment(\.colorScheme, .dark)
+                                
+                                Text("拍照设置页")
+                                    .font(.body)
+                                    .foregroundStyle(.green)
+                            }
                             
-                            Text("拍照设置页")
-                                .font(.body)
-                                .foregroundStyle(.green)
                         }
-                        
-                    }
-                    Button() {
-                        sheetMode = .video
-                        isSheetPresented = true
-                        debugPrint("++++ 展示录像设置页面 ")
-                    } label: {
-                        VStack(spacing: 10) {
-                            Image(systemName: "fish.fill")
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                                .padding(18)
-                                .background(.ultraThinMaterial, in: Circle())
-                                .environment(\.colorScheme, .dark)
-                            Text("录像设置页")
-                                .font(.body)
-                                .foregroundStyle(.green)
+                        Button() {
+                            sheetMode = .video
+                            isSheetPresented = true
+                            debugPrint("++++ 展示录像设置页面 ")
+                        } label: {
+                            VStack(spacing: 10) {
+                                Image(systemName: "fish.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(.white)
+                                    .padding(18)
+                                    .background(.ultraThinMaterial, in: Circle())
+                                    .environment(\.colorScheme, .dark)
+                                Text("录像设置页")
+                                    .font(.body)
+                                    .foregroundStyle(.green)
+                            }
+                            
                         }
-                        
                     }
                     
-                    //MARK: - TEST
-                    Button() {
-                        debugPrint("++++ 点击设置比为16:9 ")
-                        test1()
-                    } label: {
-                        VStack(spacing: 10) {
-                            Image(systemName: "fish.fill")
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                                .padding(18)
-                                .background(.ultraThinMaterial, in: Circle())
-                                .environment(\.colorScheme, .dark)
-                            Text("点击设置比为16:9")
-                                .font(.body)
-                                .foregroundStyle(.green)
+                    HStack(spacing: 25) {
+                        Button() {
+                            sheetMode = .photo
+                            isSheetPresented = true
+                        } label: {
+                            VStack(spacing: 10) {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(.white)
+                                    .padding(18)
+                                    .background(.ultraThinMaterial, in: Circle())
+                                    .environment(\.colorScheme, .dark)
+                                
+                                Text("延时摄影设置页")
+                                    .font(.body)
+                                    .foregroundStyle(.green)
+                            }
+                            
                         }
-                        
+                        Button() {
+                            sheetMode = .video
+                            isSheetPresented = true
+                            debugPrint("++++ 展示录像设置页面 ")
+                        } label: {
+                            VStack(spacing: 10) {
+                                Image(systemName: "fish.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(.white)
+                                    .padding(18)
+                                    .background(.ultraThinMaterial, in: Circle())
+                                    .environment(\.colorScheme, .dark)
+                                Text("低速快门设置页")
+                                    .font(.body)
+                                    .foregroundStyle(.green)
+                            }
+                            
+                        }
                     }
                     
-                    
-                    Button() {
-                        debugPrint("++++ 点击设置防抖为标准 ")
-                        test2()
-                    } label: {
-                        VStack(spacing: 10) {
-                            Image(systemName: "fish.fill")
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                                .padding(18)
-                                .background(.ultraThinMaterial, in: Circle())
-                                .environment(\.colorScheme, .dark)
-                            Text("点击设置防抖为标准")
-                                .font(.body)
-                                .foregroundStyle(.green)
+                    HStack(spacing: 25) {
+                        //MARK: - TEST
+                        Button() {
+                            debugPrint("++++ 点击设置比为16:9 ")
+                            test1()
+                        } label: {
+                            VStack(spacing: 10) {
+                                Image(systemName: "fish.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(.white)
+                                    .padding(18)
+                                    .background(.ultraThinMaterial, in: Circle())
+                                    .environment(\.colorScheme, .dark)
+                                Text("点击设置比为16:9")
+                                    .font(.body)
+                                    .foregroundStyle(.green)
+                            }
+                            
                         }
                         
+                        
+                        Button() {
+                            debugPrint("++++ 点击设置防抖为标准 ")
+                            test2()
+                        } label: {
+                            VStack(spacing: 10) {
+                                Image(systemName: "fish.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(.white)
+                                    .padding(18)
+                                    .background(.ultraThinMaterial, in: Circle())
+                                    .environment(\.colorScheme, .dark)
+                                Text("点击设置防抖为标准")
+                                    .font(.body)
+                                    .foregroundStyle(.green)
+                            }
+                            
+                        }
                     }
                     
-                    
-
                 }
                 .padding(.bottom, 440)
             }

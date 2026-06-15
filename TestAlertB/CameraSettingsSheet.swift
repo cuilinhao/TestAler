@@ -60,6 +60,9 @@ struct CameraSettingsSheet: View {
             return Self.photoRows
         case .video:
             return Self.videoRows
+        
+        default:
+            return Self.videoRows
         }
     }
 

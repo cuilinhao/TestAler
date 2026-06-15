@@ -14,9 +14,18 @@ extension CameraSettings {
 
     /// 首页进入设置面板的业务模式：复用同一个 Sheet，只替换内部 rows 数据
     enum SheetMode: Hashable {
+        /// 拍照参数
         case photo
+        ///  视频录制
         case video
+        
+        /// 延时摄影
+        case timeLapse
+        /// 低速快门
+        case longExposure
     }
+    
+    
 
     /// 网格里每个 setting 的稳定标识，与 SettingItem.id 一一对应
     enum ItemID: String, CaseIterable {
