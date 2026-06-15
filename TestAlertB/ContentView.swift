@@ -10,6 +10,13 @@ import SwiftUI
 struct ContentView: View {
     @State private var isSheetPresented = false
     @State private var sheetMode: CameraSettings.SheetMode = .photo
+    /// 比例状态：拍照/录像分开存，供 Sheet 与测试按钮共用
+    @State private var aspectRatios: [CameraSettings.SheetMode: CameraSettings.AspectRatio] = [
+        .photo: .ratio4x3,
+        .video: .ratio4x3,
+    ]
+    /// 选项型 item 的选中值，供 Sheet 与测试按钮共用
+    @State private var optionSelectionsByMode: [CameraSettings.SheetMode: [String: String]] = [:]
 
     var body: some View {
         ZStack {
@@ -56,6 +63,46 @@ struct ContentView: View {
                         }
                         
                     }
+                    
+                    //MARK: - TEST
+                    Button() {
+                        debugPrint("++++ 点击设置比为16:9 ")
+                        test1()
+                    } label: {
+                        VStack(spacing: 10) {
+                            Image(systemName: "fish.fill")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                                .padding(18)
+                                .background(.ultraThinMaterial, in: Circle())
+                                .environment(\.colorScheme, .dark)
+                            Text("点击设置比为16:9")
+                                .font(.body)
+                                .foregroundStyle(.green)
+                        }
+                        
+                    }
+                    
+                    
+                    Button() {
+                        debugPrint("++++ 点击设置防抖为标准 ")
+                        test2()
+                    } label: {
+                        VStack(spacing: 10) {
+                            Image(systemName: "fish.fill")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                                .padding(18)
+                                .background(.ultraThinMaterial, in: Circle())
+                                .environment(\.colorScheme, .dark)
+                            Text("点击设置防抖为标准")
+                                .font(.body)
+                                .foregroundStyle(.green)
+                        }
+                        
+                    }
+                    
+                    
 
                 }
                 .padding(.bottom, 440)
@@ -63,13 +110,38 @@ struct ContentView: View {
         }
         // 弹框 B 作为全屏覆盖层呈现，便于实现自定义形变交互
         .overlay {
-            CameraSettingsSheet(isPresented: $isSheetPresented, mode: sheetMode) {
+            CameraSettingsSheet(
+                isPresented: $isSheetPresented,
+                mode: sheetMode,
+                aspectRatios: $aspectRatios,
+                optionSelectionsByMode: $optionSelectionsByMode
+            ) {
                 // 倒计时 3→2→1 走完后回调；面板可已收起，Task 不随 dismiss 中断
                 // TODO: 触发相机拍照
                 TestLog.log("倒计时结束开始拍照")
             }
         }
         .preferredColorScheme(.dark)
+    }
+    
+    
+    /// 测试：将拍照/录像比例都设为 16:9
+    func test1() {
+        aspectRatios[.photo] = .ratio16x9
+        aspectRatios[.video] = .ratio16x9
+        debugPrint("++++ 比例已设为 16:9, photo=\(aspectRatios[.photo]?.rawValue ?? ""), video=\(aspectRatios[.video]?.rawValue ?? "")")
+        TestLog.log("test1 比例设为 16:9")
+    }
+
+    /// 测试：将录像防抖选项设为「标准」
+    func test2() {
+        var selections = optionSelectionsByMode
+        var videoOptions = selections[.video] ?? [:]
+        videoOptions[CameraSettings.ItemID.stabilization.rawValue] = "标准"
+        selections[.video] = videoOptions
+        optionSelectionsByMode = selections
+        debugPrint("++++ 录像防抖已设为 标准")
+        TestLog.log("test2 录像防抖设为 标准")
     }
 }
 

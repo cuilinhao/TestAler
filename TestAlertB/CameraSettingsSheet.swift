@@ -10,6 +10,10 @@ import SwiftUI
 struct CameraSettingsSheet: View {
     @Binding var isPresented: Bool
     var mode: CameraSettings.SheetMode = .photo
+    /// 比例：由外部持有，Sheet 内选中时同步回写
+    @Binding var aspectRatios: [CameraSettings.SheetMode: CameraSettings.AspectRatio]
+    /// 选项选中值：由外部持有，Sheet 内选中时同步回写
+    @Binding var optionSelectionsByMode: [CameraSettings.SheetMode: [String: String]]
     var onCountdownFinished: () -> Void
 
     /// 弹框内部页面：只切换内容区，不改变外层 Sheet 样式
@@ -20,19 +24,12 @@ struct CameraSettingsSheet: View {
 
     // 全局互斥：整个面板同一时间只允许一个按钮处于展开状态
     @State private var expandedItemID: String?
-    /// 比例按拍照/录像分别保存，避免两个入口互相串状态
-    @State private var aspectRatios: [CameraSettings.SheetMode: CameraSettings.AspectRatio] = [
-        .photo: .ratio4x3,
-        .video: .ratio4x3,
-    ]
     /// 倒计时选项枚举：关闭 / 3秒 / 10秒；运行结束后会重置为 .off
     @State private var countdown: CameraSettings.Countdown = .off
     /// 倒计时进行中剩余秒数；nil 表示未在倒计时（收起态显示斜杠 timer）
     @State private var countdownRemainingSeconds: Int?
     /// 每秒递减的异步 Task；取消 sheet 或重选选项时需 cancel
     @State private var countdownTask: Task<Void, Never>?
-    /// 选项/开关状态按模式隔离；相同 item id 在拍照和录像页可以有不同状态
-    @State private var optionSelectionsByMode: [CameraSettings.SheetMode: [String: String]] = [:]
     @State private var enabledTogglesByMode: [CameraSettings.SheetMode: Set<String>] = [:]
     /// 当前内容页：主设置页 / 水印页
     @State private var currentPage: SheetPage = .main
