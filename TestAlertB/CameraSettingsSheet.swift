@@ -60,11 +60,34 @@ struct CameraSettingsSheet: View {
             return Self.photoRows
         case .video:
             return Self.videoRows
-        
-        default:
-            return Self.videoRows
+        case .timeLapse:
+            return Self.timeLapseRows
+        case .longExposure:
+            return Self.longExposureRows
         }
     }
+
+    /// 延时摄影 / 低速快门共用布局，仅比例选项不同
+    private static func captureModeRows(ratioOptions: [String]) -> [SettingRow] {
+        [
+            SettingRow(layout: .large, items: [
+                .init(id: CameraSettings.ItemID.ratio.rawValue, kind: .options(ratioOptions)),
+                .init(id: CameraSettings.ItemID.focusAssist.rawValue, kind: .toggle),
+            ]),
+            SettingRow(layout: .small, items: [
+                .init(id: CameraSettings.ItemID.grid.rawValue, kind: .toggle),
+                .init(id: CameraSettings.ItemID.level.rawValue, kind: .toggle),
+                .init(id: CameraSettings.ItemID.histogram.rawValue, kind: .toggle),
+            ]),
+            SettingRow(layout: .large, items: [
+                .init(id: CameraSettings.ItemID.telephoto.rawValue, kind: .toggle),
+                .init(id: CameraSettings.ItemID.diving.rawValue, kind: .toggle),
+            ]),
+        ]
+    }
+
+    private static let timeLapseRows = captureModeRows(ratioOptions: ["4:3", "16:9", "2.35:1"])
+    private static let longExposureRows = captureModeRows(ratioOptions: ["1:1", "4:3", "16:9"])
 
     /// 拍照设置：按小格行 / 大格行拼装
     private static let photoRows: [SettingRow] = [
@@ -396,6 +419,9 @@ struct CameraSettingsSheet: View {
     private func selectedOption(for item: SettingItem) -> String? {
         switch item.itemID {
         case .ratio:
+            if mode.usesStringRatioOptions {
+                return currentOptionSelections[item.id] ?? mode.defaultRatioOption
+            }
             return currentAspectRatio.rawValue
         case .timer:
             return countdown.rawValue
@@ -469,7 +495,9 @@ struct CameraSettingsSheet: View {
 
         switch item.itemID {
         case .ratio:
-            if let value = CameraSettings.AspectRatio(rawValue: option) {
+            if mode.usesStringRatioOptions {
+                setOptionSelection(option, for: item)
+            } else if let value = CameraSettings.AspectRatio(rawValue: option) {
                 setCurrentAspectRatio(value)
             }
         case .timer:

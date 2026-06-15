@@ -68,7 +68,7 @@ struct ContentView: View {
                     
                     HStack(spacing: 25) {
                         Button() {
-                            sheetMode = .photo
+                            sheetMode = .timeLapse
                             isSheetPresented = true
                         } label: {
                             VStack(spacing: 10) {
@@ -86,7 +86,7 @@ struct ContentView: View {
                             
                         }
                         Button() {
-                            sheetMode = .video
+                            sheetMode = .longExposure
                             isSheetPresented = true
                             debugPrint("++++ 展示录像设置页面 ")
                         } label: {

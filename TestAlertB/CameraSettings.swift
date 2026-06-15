@@ -23,9 +23,20 @@ extension CameraSettings {
         case timeLapse
         /// 低速快门
         case longExposure
+
+        /// 延时摄影 / 低速快门使用字符串比例选项，不走 AspectRatio 枚举
+        var usesStringRatioOptions: Bool {
+            self == .timeLapse || self == .longExposure
+        }
+
+        /// 各模式比例默认值
+        var defaultRatioOption: String {
+            switch self {
+            case .timeLapse, .longExposure, .photo, .video:
+                return "4:3"
+            }
+        }
     }
-    
-    
 
     /// 网格里每个 setting 的稳定标识，与 SettingItem.id 一一对应
     enum ItemID: String, CaseIterable {
