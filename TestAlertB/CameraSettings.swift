@@ -63,7 +63,7 @@ extension CameraSettings {
         var displayText: String { rawValue }
     }
 
-    /// 拍照倒计时选项（选 3秒/10秒 会触发一次倒计时，结束后回到 .off）
+    /// 拍照倒计时选项（关闭 / 3秒 / 10秒）
     enum Countdown: String, CaseIterable, Identifiable {
         case off = "关闭"
         case three = "3秒"
@@ -74,7 +74,7 @@ extension CameraSettings {
         /// 默认初始态：关闭（斜杠 timer）
         static var defaultValue: Self { .off }
 
-        /// 选中 3秒/10秒 时实际倒计时的秒数；关闭为 nil
+        /// 选中 3秒/10秒 时对应的秒数；关闭为 nil
         var durationSeconds: Int? {
             switch self {
             case .off:
@@ -86,7 +86,7 @@ extension CameraSettings {
             }
         }
 
-        /// 收起态左侧指示类型（静态配置用；运行中由 countdownRemainingSeconds 驱动 UI）
+        /// 收起态左侧指示类型
         enum Leading: Equatable {
             case slashTimer
             case seconds(Int)

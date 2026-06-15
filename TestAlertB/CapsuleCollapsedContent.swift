@@ -17,12 +17,10 @@ import SwiftUI
 /// 收起态内容路由器：根据 CollapsedStyle 选择对应子 View
 struct CapsuleCollapsedContentView: View {
     let style: CameraSettings.CollapsedStyle
-    /// 当前选中 option 文案（比例 badge 等）；倒计时运行态不读此字段
+    /// 当前选中 option 文案（比例 badge 等）
     let selectedOption: String?
     /// toggle 是否 ON；决定 icon/文字颜色及外层是否使用黄底
     let isOn: Bool
-    /// 倒计时进行中剩余秒数；nil 表示关闭态（斜杠 timer）
-    let countdownRemainingSeconds: Int?
 
     var body: some View {
         Group {
@@ -40,7 +38,7 @@ struct CapsuleCollapsedContentView: View {
                 )
             case .countdownIndicator(let title):
                 CountdownCollapsedView(
-                    remainingSeconds: countdownRemainingSeconds,
+                    selectedOption: selectedOption,
                     title: title
                 )
             case .toggleIcon(let offSystemName, let onSystemName, let title):
@@ -137,10 +135,9 @@ struct OptionalValueBadgeCollapsedView: View {
 
 // MARK: - 倒计时：左侧动态指示 + 右侧标题
 
-/// 倒计时收起态：关闭 = 斜杠 timer；运行中 = 圆 badge 递减秒数
+/// 倒计时收起态：关闭 = 斜杠 timer；选中 3秒/10秒 = 圆 badge 显示对应数字
 struct CountdownCollapsedView: View {
-    /// 运行中剩余秒数；nil 或 ≤0 时显示关闭态
-    let remainingSeconds: Int?
+    let selectedOption: String?
     let title: String
 
     var body: some View {
@@ -156,12 +153,12 @@ struct CountdownCollapsedView: View {
         .padding(.horizontal, 4)
     }
 
-    /// 根据 remainingSeconds 推导左侧指示类型
+    /// 根据选中项推导左侧指示类型
     private var leading: CameraSettings.Countdown.Leading {
-        if let remainingSeconds, remainingSeconds > 0 {
-            return .seconds(remainingSeconds)
+        guard let countdown = CameraSettings.Countdown(selection: selectedOption) else {
+            return .slashTimer
         }
-        return .slashTimer
+        return countdown.leading
     }
 
     @ViewBuilder
@@ -179,7 +176,7 @@ struct CountdownCollapsedView: View {
                         .rotationEffect(.degrees(-45))
                 }
         case .seconds(let value):
-            // 运行中：圆 badge 显示当前剩余秒数
+            // 选中 3秒/10秒：圆 badge 显示对应数字
             ZStack {
                 Circle()
                     .stroke(Color.white.opacity(0.85), lineWidth: 1.5)

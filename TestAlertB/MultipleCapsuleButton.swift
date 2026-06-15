@@ -21,9 +21,6 @@ struct MultipleCapsuleButton: View {
     let isOn: Bool
     /// 当前选中的 option 文案，由父级 optionSelections 传入
     let selectedOption: String?
-    /// 倒计时 item 进行中剩余秒数；非 timer item 传 nil
-    let countdownRemainingSeconds: Int?
-    /// 是否允许点击收起态胶囊（倒计时进行中为 false）
     let isTapEnabled: Bool
     /// 点击收起态胶囊时回调，父级负责设置 expandedItemID
     let onTap: () -> Void
@@ -90,8 +87,7 @@ struct MultipleCapsuleButton: View {
             CapsuleCollapsedContentView(
                 style: item.collapsedStyle,
                 selectedOption: selectedOption,
-                isOn: isOn,
-                countdownRemainingSeconds: countdownRemainingSeconds
+                isOn: isOn
             )
             .opacity(isExpanded ? 0 : 1)
 

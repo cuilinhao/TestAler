@@ -115,11 +115,7 @@ struct ContentView: View {
                 mode: sheetMode,
                 aspectRatios: $aspectRatios,
                 optionSelectionsByMode: $optionSelectionsByMode
-            ) {
-                // 倒计时 3→2→1 走完后回调；面板可已收起，Task 不随 dismiss 中断
-                // TODO: 触发相机拍照
-                TestLog.log("倒计时结束开始拍照")
-            }
+            )
         }
         .preferredColorScheme(.dark)
     }
