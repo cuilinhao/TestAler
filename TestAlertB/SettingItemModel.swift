@@ -9,12 +9,33 @@ import Foundation
 
 // MARK: - 数据模型
 
-/// 网格中的一个 setting 按钮描述（布局 + 交互类型）
+/// 行布局规格：小格一行 3 个，大格一行 2 个
+enum SettingRowLayout {
+    case small
+    case large
+
+    /// 该行等分列数
+    var columnCount: Int {
+        switch self {
+        case .small: return 3
+        case .large: return 2
+        }
+    }
+}
+
+/// 网格中的一行：先选布局规格，再填 item 列表
+struct SettingRow: Identifiable {
+    let layout: SettingRowLayout
+    let items: [SettingItem]
+
+    var id: String { items.map(\.id).joined(separator: "-") }
+}
+
+/// 网格中的一个 setting 按钮描述（交互类型；左/中/右由行内 index 推导）
 struct SettingItem: Identifiable {
     /// 使用稳定的字符串 id（而非 UUID()），保证视图重建后展开/选中状态不丢失
     let id: String
     let kind: SettingItemKind
-    let position: ButtonPosition
 
     /// 转为业务枚举，便于 switch 分支
     var itemID: CameraSettings.ItemID? {

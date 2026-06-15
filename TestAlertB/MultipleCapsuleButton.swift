@@ -11,8 +11,10 @@ import SwiftUI
 
 struct MultipleCapsuleButton: View {
     let item: SettingItem
-    /// 当前行内的按钮数量，用于计算展开后与网格整行对齐的总宽度
-    let rowItemCount: Int
+    /// 行内等分列数（小格 3 / 大格 2），用于计算展开后的整行宽度
+    let columnCount: Int
+    /// 由行内 index 推导的展开锚点
+    let position: ButtonPosition
     /// 是否处于展开态，由父级 expandedItemID 推导，子组件不自行维护
     let isExpanded: Bool
     /// toggle 型 item 的开关状态；options 型 item 目前不参与收起态配色
@@ -50,7 +52,7 @@ struct MultipleCapsuleButton: View {
 
     /// 展开后与当前网格行等宽：slotWidth × 列数 + 列间距 × (列数 - 1)
     private func rowWidth(slotWidth: CGFloat) -> CGFloat {
-        slotWidth * CGFloat(rowItemCount) + rowSpacing * CGFloat(rowItemCount - 1)
+        slotWidth * CGFloat(columnCount) + rowSpacing * CGFloat(columnCount - 1)
     }
 
     var body: some View {
@@ -63,7 +65,7 @@ struct MultipleCapsuleButton: View {
 
             morphingBody(slotWidth: slotWidth)
                 // 按 position 锚定：内容超宽时从锚点方向溢出（左→右展，右→左展，中→对称展）
-                .frame(width: slotWidth, height: buttonHeight, alignment: item.position.anchor)
+                .frame(width: slotWidth, height: buttonHeight, alignment: position.anchor)
         }
         .frame(height: buttonHeight)
         // 展开瞬间提升 Z 层级，保证覆盖在相邻按钮之上

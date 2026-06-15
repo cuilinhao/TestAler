@@ -21,6 +21,22 @@ enum ButtonPosition {
         case .right: return .trailing
         }
     }
+
+    /// 由行内 index 和列数推导锚点，不在数据里手写 position
+    static func derived(index: Int, columnCount: Int) -> ButtonPosition {
+        switch columnCount {
+        case 2:
+            return index == 0 ? .left : .right
+        case 3:
+            switch index {
+            case 0: return .left
+            case 1: return .center
+            default: return .right
+            }
+        default:
+            return .center
+        }
+    }
 }
 
 /// 按钮类型：开关型（点击切换） / 选项型（点击原地展开为分段胶囊）
@@ -40,8 +56,10 @@ enum CapsuleTheme {
 
 struct MorphingCapsuleButton: View {
     let item: SettingItem
-    /// 当前行内的按钮数量，用于计算展开后与网格行对齐的总宽度
-    let rowItemCount: Int
+    /// 行内等分列数（小格 3 / 大格 2），用于计算展开后的整行宽度
+    let columnCount: Int
+    /// 由行内 index 推导的展开锚点
+    let position: ButtonPosition
     let isExpanded: Bool
     let isOn: Bool
     /// 当前选中的 option 文案，由父级 optionSelections 传入
@@ -65,7 +83,7 @@ struct MorphingCapsuleButton: View {
 
     /// 展开后与下方网格整行对齐的总宽度
     private func rowWidth(slotWidth: CGFloat) -> CGFloat {
-        slotWidth * CGFloat(rowItemCount) + rowSpacing * CGFloat(rowItemCount - 1)
+        slotWidth * CGFloat(columnCount) + rowSpacing * CGFloat(columnCount - 1)
     }
 
     var body: some View {
@@ -77,7 +95,7 @@ struct MorphingCapsuleButton: View {
 
             morphingBody(slotWidth: slotWidth)
                 // 按 position 锚定：内容超宽时从锚点方向溢出
-                .frame(width: slotWidth, height: buttonHeight, alignment: item.position.anchor)
+                .frame(width: slotWidth, height: buttonHeight, alignment: position.anchor)
                 .onAppear {
                     logLayout(
                         slotWidth: slotWidth,
@@ -173,7 +191,7 @@ struct MorphingCapsuleButton: View {
         let visibleWidth = expandedValue ? rowWidth(slotWidth: slotWidth) : slotWidth
 
         TestLog.log(
-            "layout reason=\(reason), id=\(item.id), title=\(item.title), position=\(debugPositionDescription(item.position)), rowItemCount=\(rowItemCount), loggedExpanded=\(expandedValue), selected=\(selectedValue ?? "nil"), slotWidth=\(debugNumber(slotWidth)), visibleWidth=\(debugNumber(visibleWidth)), viewZIndex=\(expandedValue ? 10 : 0)"
+            "layout reason=\(reason), id=\(item.id), title=\(item.title), position=\(debugPositionDescription(position)), columnCount=\(columnCount), loggedExpanded=\(expandedValue), selected=\(selectedValue ?? "nil"), slotWidth=\(debugNumber(slotWidth)), visibleWidth=\(debugNumber(visibleWidth)), viewZIndex=\(expandedValue ? 10 : 0)"
         )
     }
 

@@ -7,7 +7,12 @@
 
 import SwiftUI
 
-// MARK: - 路由
+// MARK: - 最小单元 item = 胶囊组件（MorphingCapsuleButton / MultipleCapsuleButton）
+
+//CapsuleCollapsedContentView = 胶囊内部的「收起态 UI 路由器」，是子组件(不是完整格子)
+
+//「小长方形 = 一行 3 个里的那一个按钮」，对应的是整个胶囊
+// 不是单独的 CapsuleCollapsedContentView。
 
 /// 收起态内容路由器：根据 CollapsedStyle 选择对应子 View
 struct CapsuleCollapsedContentView: View {

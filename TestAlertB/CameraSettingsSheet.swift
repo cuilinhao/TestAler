@@ -67,7 +67,7 @@ struct CameraSettingsSheet: View {
     }
 
     /// 当前模式的数据源：同一个 Sheet 复用布局和交互，只替换 item rows
-    private var rows: [[SettingItem]] {
+    private var rows: [SettingRow] {
         switch mode {
         case .photo:
             return Self.photoRows
@@ -76,53 +76,48 @@ struct CameraSettingsSheet: View {
         }
     }
 
-    /// 拍照设置：多行不等列布局，每行内部平分宽度
-    private static let photoRows: [[SettingItem]] = [
-        [
-            .init(id: CameraSettings.ItemID.ratio.rawValue, kind: .options(CameraSettings.AspectRatio.allCases.map(\.rawValue)), position: .left),
-            .init(id: CameraSettings.ItemID.timer.rawValue, kind: .options(CameraSettings.Countdown.allCases.map(\.rawValue)), position: .right),
-        ],
-        [
-            // .init(id: CameraSettings.ItemID.live.rawValue, kind: .options(["极限", "自动", "关闭", "标准", "运动"]), position: .left),
-            .init(id: CameraSettings.ItemID.live.rawValue, kind: .toggle, position: .left),
-            
-            .init(id: CameraSettings.ItemID.grid.rawValue, kind: .options(["1:1", "4:3", "16:9", "4:5", "5:6", "8:9"]), position: .center),
-            .init(id: CameraSettings.ItemID.level.rawValue, kind: .toggle, position: .right),
-        ],
-        [
-            .init(id: CameraSettings.ItemID.histogram.rawValue, kind: .toggle, position: .left),
-            .init(id: CameraSettings.ItemID.focusAssist.rawValue, kind: .toggle, position: .center),
-            .init(id: CameraSettings.ItemID.watermark.rawValue, kind: .toggle, position: .right),
-        ],
-        [
-            .init(id: CameraSettings.ItemID.telephoto.rawValue, kind: .toggle, position: .left),
-            .init(id: CameraSettings.ItemID.diving.rawValue, kind: .toggle, position: .right),
-        ],
-        [
-            .init(id: CameraSettings.ItemID.voice.rawValue, kind: .options(["极限", "自动", "关闭", "标准", "运动"]), position: .left),
-        ],
+    /// 拍照设置：按小格行 / 大格行拼装
+    private static let photoRows: [SettingRow] = [
+        SettingRow(layout: .large, items: [
+            .init(id: CameraSettings.ItemID.ratio.rawValue, kind: .options(CameraSettings.AspectRatio.allCases.map(\.rawValue))),
+            .init(id: CameraSettings.ItemID.timer.rawValue, kind: .options(CameraSettings.Countdown.allCases.map(\.rawValue))),
+        ]),
+        SettingRow(layout: .small, items: [
+            .init(id: CameraSettings.ItemID.live.rawValue, kind: .toggle),
+            .init(id: CameraSettings.ItemID.grid.rawValue, kind: .options(["1:1", "4:3", "16:9", "4:5", "5:6", "8:9"])),
+            .init(id: CameraSettings.ItemID.level.rawValue, kind: .toggle),
+        ]),
+        SettingRow(layout: .small, items: [
+            .init(id: CameraSettings.ItemID.histogram.rawValue, kind: .toggle),
+            .init(id: CameraSettings.ItemID.focusAssist.rawValue, kind: .toggle),
+            .init(id: CameraSettings.ItemID.watermark.rawValue, kind: .toggle),
+        ]),
+        SettingRow(layout: .large, items: [
+            .init(id: CameraSettings.ItemID.telephoto.rawValue, kind: .toggle),
+            .init(id: CameraSettings.ItemID.diving.rawValue, kind: .toggle),
+        ]),
     ]
 
-    /// 录像设置：按截图顺序组织 rows，Log还原/防抖为选项型
-    private static let videoRows: [[SettingItem]] = [
-        [
-            .init(id: CameraSettings.ItemID.ratio.rawValue, kind: .options(CameraSettings.AspectRatio.allCases.map(\.rawValue)), position: .left),
-            .init(id: CameraSettings.ItemID.level.rawValue, kind: .toggle, position: .right),
-        ],
-        [
-            .init(id: CameraSettings.ItemID.grid.rawValue, kind: .toggle, position: .left),
-            .init(id: CameraSettings.ItemID.histogram.rawValue, kind: .toggle, position: .center),
-            .init(id: CameraSettings.ItemID.logRestore.rawValue, kind: .options(["仅预览", "烧录至成品"]), position: .right),
-        ],
-        [
-            .init(id: CameraSettings.ItemID.voice.rawValue, kind: .toggle, position: .left),
-            .init(id: CameraSettings.ItemID.focusAssist.rawValue, kind: .toggle, position: .center),
-            .init(id: CameraSettings.ItemID.stabilization.rawValue, kind: .options(["极限", "自动", "关闭", "标准", "运动"]), position: .right),
-        ],
-        [
-            .init(id: CameraSettings.ItemID.telephoto.rawValue, kind: .toggle, position: .left),
-            .init(id: CameraSettings.ItemID.diving.rawValue, kind: .toggle, position: .right),
-        ],
+    /// 录像设置：按小格行 / 大格行拼装
+    private static let videoRows: [SettingRow] = [
+        SettingRow(layout: .large, items: [
+            .init(id: CameraSettings.ItemID.ratio.rawValue, kind: .options(CameraSettings.AspectRatio.allCases.map(\.rawValue))),
+            .init(id: CameraSettings.ItemID.level.rawValue, kind: .toggle),
+        ]),
+        SettingRow(layout: .small, items: [
+            .init(id: CameraSettings.ItemID.grid.rawValue, kind: .toggle),
+            .init(id: CameraSettings.ItemID.histogram.rawValue, kind: .toggle),
+            .init(id: CameraSettings.ItemID.logRestore.rawValue, kind: .options(["仅预览", "烧录至成品"])),
+        ]),
+        SettingRow(layout: .small, items: [
+            .init(id: CameraSettings.ItemID.voice.rawValue, kind: .toggle),
+            .init(id: CameraSettings.ItemID.focusAssist.rawValue, kind: .toggle),
+            .init(id: CameraSettings.ItemID.stabilization.rawValue, kind: .options(["极限", "自动", "关闭", "标准", "运动"])),
+        ]),
+        SettingRow(layout: .large, items: [
+            .init(id: CameraSettings.ItemID.telephoto.rawValue, kind: .toggle),
+            .init(id: CameraSettings.ItemID.diving.rawValue, kind: .toggle),
+        ]),
     ]
 
     var body: some View {
@@ -278,40 +273,54 @@ struct CameraSettingsSheet: View {
         }
     }
 
-     //MARK: - 将item数据放在UI上
+     //MARK: - 将 item 数据按小格行 / 大格行拼到 UI 上
     private var settingsGrid: some View {
         VStack(spacing: 12) {
-            ForEach(Array(rows.enumerated()), id: \.offset) { rowIndex, row in
-                let expandedIDInRow = row.first { $0.id == expandedItemID }?.id
-
-                HStack(spacing: 12) {
-                    ForEach(row) { item in
-                        settingCapsuleButton(
-                            for: item,
-                            rowItemCount: row.count,
-                            rowIndex: rowIndex,
-                            expandedIDInRow: expandedIDInRow
-                        )
-                    }
-                }
-                .onAppear {
-                    TestLog.log(
-                        "row appear index=\(rowIndex), paintOrder=\(debugRowDescription(row))"
-                    )
-                }
+            ForEach(Array(rows.enumerated()), id: \.element.id) { rowIndex, row in
+                settingGridRow(row, rowIndex: rowIndex)
             }
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 24)
-        // PreferenceKey 方案测量内容真实高度，驱动 Sheet 高度自适应
         .measureHeight($contentHeight)
     }
 
-    /// 根据 option 数量自动选择胶囊组件，并统一处理同行兄弟覆盖逻辑
+    /// 按行布局选择小格行或大格行容器
+    @ViewBuilder
+    private func settingGridRow(_ row: SettingRow, rowIndex: Int) -> some View {
+        let expandedIDInRow = row.items.first { $0.id == expandedItemID }?.id
+
+        switch row.layout {
+        case .small:
+            ///
+            SmallSettingRowView(items: row.items, rowIndex: rowIndex) { item, _, position in
+                settingCapsuleButton(
+                    for: item,
+                    columnCount: row.layout.columnCount,
+                    position: position,
+                    rowIndex: rowIndex,
+                    expandedIDInRow: expandedIDInRow
+                )
+            }
+        case .large:
+            LargeSettingRowView(items: row.items, rowIndex: rowIndex) { item, _, position in
+                settingCapsuleButton(
+                    for: item,
+                    columnCount: row.layout.columnCount,
+                    position: position,
+                    rowIndex: rowIndex,
+                    expandedIDInRow: expandedIDInRow
+                )
+            }
+        }
+    }
+
+    /// 单个格子的胶囊：小格 / 大格共用，由 columnCount 区分展开宽度
     @ViewBuilder
     private func settingCapsuleButton(
         for item: SettingItem,
-        rowItemCount: Int,
+        columnCount: Int,
+        position: ButtonPosition,
         rowIndex: Int,
         expandedIDInRow: String?
     ) -> some View {
@@ -321,38 +330,32 @@ struct CameraSettingsSheet: View {
 
         Group {
             if case .options(let opts) = item.kind, opts.count > 3 {
-                // 选项 > 3：使用多选项滑动胶囊（如「网格」6 个比例）
+                // 选项 > 3：横向滑动胶囊
                 MultipleCapsuleButton(
                     item: item,
-                    rowItemCount: rowItemCount,
+                    columnCount: columnCount,
+                    position: position,
                     isExpanded: expandedItemID == item.id,
                     isOn: currentEnabledToggles.contains(item.id),
                     selectedOption: selectedOption(for: item),
                     countdownRemainingSeconds: countdownRemainingSeconds(for: item),
                     isTapEnabled: isItemTapEnabled,
-                    onTap: {
-                        handleTap(item)
-                    },
-                    onSelect: {
-                        option in select(option, for: item)
-                    }
+                    onTap: { handleTap(item) },
+                    onSelect: { option in select(option, for: item) }
                 )
             } else {
-                // toggle 或 options ≤ 3：使用原形变分段胶囊（如「比例」「倒计时」）
+                // toggle 或 options ≤ 3：分段形变胶囊
                 MorphingCapsuleButton(
                     item: item,
-                    rowItemCount: rowItemCount,
+                    columnCount: columnCount,
+                    position: position,
                     isExpanded: expandedItemID == item.id,
                     isOn: currentEnabledToggles.contains(item.id),
                     selectedOption: selectedOption(for: item),
                     countdownRemainingSeconds: countdownRemainingSeconds(for: item),
                     isTapEnabled: isItemTapEnabled,
-                    onTap: {
-                        handleTap(item)
-                    },
-                    onSelect: {
-                        option in select(option, for: item)
-                    }
+                    onTap: { handleTap(item) },
+                    onSelect: { option in select(option, for: item) }
                 )
             }
         }
@@ -462,7 +465,7 @@ struct CameraSettingsSheet: View {
         }
 
         TestLog.log(
-            "handleTap id--- =\(item.id), title=\(item.title), kind=\(debugKindDescription(item.kind)), position=\(debugPositionDescription(item.position)), expandedBefore=\(expandedItemID ?? "nil"), rowOrder=\(debugRowDescription(containing: item)), selected=\(selectedOption(for: item) ?? "nil"), toggles=\(debugToggleDescription())"
+            "handleTap id--- =\(item.id), title=\(item.title), kind=\(debugKindDescription(item.kind)), expandedBefore=\(expandedItemID ?? "nil"), rowOrder=\(debugRowDescription(containing: item)), selected=\(selectedOption(for: item) ?? "nil"), toggles=\(debugToggleDescription())"
         )
 
         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
@@ -674,20 +677,9 @@ struct CameraSettingsSheet: View {
         }
     }
 
-    private func debugPositionDescription(_ position: ButtonPosition) -> String {
-        switch position {
-        case .left:
-            return "left"
-        case .center:
-            return "center"
-        case .right:
-            return "right"
-        }
-    }
-
     private func debugRowDescription(containing item: SettingItem) -> String {
         guard let row = rows.first(where: { row in
-            row.contains { $0.id == item.id }
+            row.items.contains { $0.id == item.id }
         }) else {
             return "unknown"
         }
@@ -695,8 +687,8 @@ struct CameraSettingsSheet: View {
         return debugRowDescription(row)
     }
 
-    private func debugRowDescription(_ row: [SettingItem]) -> String {
-        return row.map(\.id).joined(separator: " -> ")
+    private func debugRowDescription(_ row: SettingRow) -> String {
+        return row.items.map(\.id).joined(separator: " -> ")
     }
 
     private func debugToggleDescription() -> String {

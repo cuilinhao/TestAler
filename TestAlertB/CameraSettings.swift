@@ -20,19 +20,19 @@ extension CameraSettings {
 
     /// 网格里每个 setting 的稳定标识，与 SettingItem.id 一一对应
     enum ItemID: String, CaseIterable {
-        case ratio
-        case timer
-        case live
-        case grid
-        case level
-        case histogram
-        case focusAssist
-        case watermark
-        case telephoto
-        case diving
-        case voice
-        case logRestore
-        case stabilization
+        case ratio          // 比例：
+        case timer          // 倒计时
+        case live           // LIVE
+        case grid           // 网格：
+        case level          // 水平
+        case histogram      // 直方图
+        case focusAssist    // 对焦
+        case watermark      // 水印
+        case telephoto      // 长焦模式
+        case diving         // 潜水
+        case voice          // 音频表
+        case logRestore     // Log
+        case stabilization  // 防抖
     }
 
     /// 收起态 UI 类型：CapsuleCollapsedContentView 按此路由到不同子 View
